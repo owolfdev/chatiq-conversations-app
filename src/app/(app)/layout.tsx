@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import AppHeader from "@/components/nav/app-header";
-import AppFooter from "@/components/nav/app-footer";
-import Footer from "@/components/nav/footer";
 import { cookies } from "next/headers";
+import { ConversationsTopBar } from "@/components/conversations/top-bar";
 
 export const metadata: Metadata = {
   robots: {
@@ -23,10 +21,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       (name) => name.startsWith("sb-") && name.includes("auth-token")
     );
   return (
-    <div className="flex min-h-screen flex-col">
-      <AppHeader />
+    <div className="flex min-h-screen flex-col bg-background">
+      <ConversationsTopBar showUserMenu={hasSession} />
       <div className="flex-1">{children}</div>
-      {hasSession ? <AppFooter /> : <Footer />}
     </div>
   );
 }

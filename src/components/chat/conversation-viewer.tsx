@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, Trash2, ArrowLeft, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  FileDown,
+  MessageSquare,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +23,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,6 +61,7 @@ interface ConversationViewerProps {
   humanTakeover?: boolean;
   humanTakeoverUntil?: string | null;
   interactive?: boolean;
+  backHref?: string;
 }
 
 export function ConversationViewer({
@@ -66,6 +79,7 @@ export function ConversationViewer({
   humanTakeover = false,
   humanTakeoverUntil,
   interactive = false,
+  backHref = "/conversations",
 }: ConversationViewerProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -151,7 +165,7 @@ export function ConversationViewer({
       await deleteConversation(conversationId);
       toast.success("Conversation deleted successfully");
       // Redirect to conversations page
-      router.push("/dashboard/conversations");
+      router.push(backHref);
     } catch (error) {
       console.error("Delete error:", error);
       toast.error(
@@ -582,41 +596,22 @@ export function ConversationViewer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsNavigatingBack(true);
-                router.push("/dashboard/conversations");
-              }}
-              className="gap-2"
-              disabled={isNavigatingBack}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {isNavigatingBack ? "Returning..." : "Back to Conversations"}
-            </Button>
-          </div>
-          <h1 className="hidden md:block text-3xl font-bold mb-2">
-            {topic || "General Inquiry"}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>{botName}</span>
-            </div>
-            <span>•</span>
-            <span>
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                Messages:
-              </span>{" "}
-              {messages.length}
-            </span>
-            <span>•</span>
+    <div className="mx-auto w-full max-w-2xl space-y-5">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setIsNavigatingBack(true);
+              router.push(backHref);
+            }}
+            disabled={isNavigatingBack}
+            aria-label="Back to conversations"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
             <Badge
               variant="outline"
               className={cn(
@@ -627,14 +622,87 @@ export function ConversationViewer({
             >
               {statusLabel}
             </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Conversation actions"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    handleExport("json");
+                  }}
+                  disabled={isExporting}
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    handleExport("csv");
+                  }}
+                  disabled={isExporting}
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setShowDeleteDialog(true);
+                  }}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <MessageSquare className="h-3 w-3" />
+            <span>{botName}</span>
             <span>•</span>
-            <div className="min-w-[220px]">
+            <span>{messages.length} messages</span>
+          </div>
+          <h1 className="text-lg font-semibold">
+            {topic || "General Inquiry"}
+          </h1>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-3 space-y-3">
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>Created {formatDate(createdAt)}</span>
+            <span>
+              {lastMessageAt ? `Last ${formatDate(lastMessageAt)}` : "Last —"}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStatusToggle}
+              disabled={statusUpdating}
+            >
+              {statusUpdating ? "Updating..." : statusToggleLabel}
+            </Button>
+            <div className="min-w-[180px] flex-1">
               <Select
                 value={topic}
                 onValueChange={handleTopicChange}
                 disabled={topicUpdating}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select topic" />
                 </SelectTrigger>
                 <SelectContent>
@@ -647,21 +715,9 @@ export function ConversationViewer({
               </Select>
             </div>
           </div>
-          <div className="mt-2 text-sm text-muted-foreground space-y-1">
-            <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-              Created:
-            </span>{" "}
-            {formatDate(createdAt)}
-            <span className="block">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                Last message:
-              </span>{" "}
-              {lastMessageAt ? formatDate(lastMessageAt) : "—"}
-            </span>
-          </div>
-          {!interactive && (
-            <div className="mt-4 flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9">
                 <AvatarImage
                   src={customerAvatarUrl || undefined}
                   alt={displayCustomerName}
@@ -679,60 +735,23 @@ export function ConversationViewer({
                 ) : null}
               </div>
             </div>
+            {conversationSource ? (
+              <Badge variant="outline" className="capitalize">
+                {conversationSource}
+              </Badge>
+            ) : null}
+          </div>
+          {!interactive && (
+            <Badge variant="outline" className="w-fit">
+              Read-only view
+            </Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExport("json")}
-            disabled={isExporting}
-            className="hidden md:inline-flex gap-2"
-          >
-            <FileDown className="h-4 w-4" />
-            Export JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExport("csv")}
-            disabled={isExporting}
-            className="hidden md:inline-flex gap-2"
-          >
-            <FileDown className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleStatusToggle}
-            disabled={statusUpdating}
-            className="hidden md:inline-flex"
-          >
-            {statusUpdating ? "Updating..." : statusToggleLabel}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isDeleting}
-            className="gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
         </div>
       </div>
 
-      {!interactive && (
-        <Badge variant="outline" className="w-fit">
-          Read-only view
-        </Badge>
-      )}
-
       {/* Messages */}
-      <Card className="bg-[var(--background)] border-0 rounded-none shadow-none py-0 md:border md:rounded-lg md:shadow-sm md:py-6">
-        <CardContent className="pt-0 px-0 pb-0 md:px-4">
+      <Card className="bg-[var(--background)] border-0 rounded-none shadow-none py-0">
+        <CardContent className="pt-0 px-0 pb-0">
           {interactive ? (
             <div className="h-[min(70vh,720px)] min-h-[420px] flex flex-col">
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-0 border-b border-border">
@@ -814,7 +833,7 @@ export function ConversationViewer({
                         )}
                         <div
                           className={cn(
-                            "max-w-[75%] rounded-2xl px-4 py-2 text-xl md:text-base shadow-sm",
+                            "max-w-[75%] rounded-2xl px-4 py-2 text-sm md:text-base shadow-sm",
                             isUser
                               ? "bg-white text-zinc-900"
                               : "bg-emerald-100 text-emerald-950"
