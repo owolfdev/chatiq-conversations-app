@@ -1,0 +1,103 @@
+export const metadata = {
+  id: "blog-002",
+  type: "blog",
+  title: "How To Create Your AI Support Bot In Minutes",
+  author: "ChatIQ Team",
+  publishDate: "2025-11-04",
+  description:
+    "A quick, practical guide to launching an AI support bot fast with Chatiq.",
+  categories: ["tutorial", "support", "getting-started"],
+  tags: ["ai", "chatbot", "support", "rag", "quick-start"],
+  modifiedDate: "2025-11-10",
+  image: "/blog/images/build-your-ai-support-bot-in-10-minutes.jpg",
+  draft: false,
+  relatedPosts: [],
+  slug: "build-your-ai-support-bot-in-10-minutes",
+};
+
+# How To Create Your AI Support Bot In Minutes
+
+If you need a support bot fast, focus on scope, knowledge, and launch. This quick guide follows the actual ChatIQ flow so you can ship a helpful AI support bot in minutes, not weeks.
+
+## 1) Define the scope (2-minute prep)
+
+Before creating your bot, do a quick mental inventory. This prep work becomes the input we use to configure the bot.
+
+Write down:
+
+- The top 10 support questions you already get
+- Where the bot will live first (website, docs, email)
+- When the bot should hand off to a human
+
+## 2) Create your bot from the dashboard
+
+From your dashboard, click **Create New Bot** and use the form to describe the job. The description is the most important input because we use it to generate the name, system prompt, and starter responses.
+
+Include:
+
+- Who the bot is for and what it should solve (80–200 words)
+- Optional tone (friendly, professional, technical)
+- Optional website URL to ingest (about, docs, product page)
+- Support contact info to route edge cases
+
+Tap **Create Bot** to generate the bot. Your bot is created and ready to use! 🎉
+
+## 3) Add knowledge
+
+Upload documents or paste content so the bot has real answers. Use your best sources first:
+
+- FAQs and help center articles
+- Pricing, policies, and onboarding docs
+- Past tickets or internal playbooks
+
+Clean up the most important docs so they are clear, current, and easy to parse.
+
+## 4) Test your bot
+
+After creation, you land on the bot’s **Test** page. You can always return to it from **Bots** in the sidebar. Try your top support questions and confirm answers map to your documents.
+
+If the bot misses, add or refine documents and try again.
+
+## 5) Tune the bot
+
+This is your control room for behavior and fast wins. Click **Tune** from the bot page to open it:
+
+- Edit the **System Prompt** for tone, scope, and guardrails
+- Set a **Default Response** for when AI is unavailable
+- Add **Pre-configured Responses** for high-confidence replies
+- Chat in private mode to test instantly
+
+## 6) Review settings
+
+Decide how the bot should behave in the real world. Click **Settings** from the bot page to adjust it:
+
+- Set **Visibility** to Public if you want a public chat page
+- Adjust **Status** (Active, Draft, Archived)
+- Enable **Rich Responses (Markdown)** if your UI supports it
+- Customize widget colors and styling
+
+## 7) Embed it on your site
+
+Generate a widget script, choose colors and position, and create an API key. Click **Embed** from the bot page, then restrict the key with **allowed domains** so it only runs where you expect.
+
+<div className="mt-6 flex flex-wrap gap-3">
+  <Button asChild size="lg">
+    <a href="/dashboard/bots/new">Start building your support bot</a>
+  </Button>
+  <Button asChild size="lg" variant="outline">
+    <a href="/docs">Explore the docs</a>
+  </Button>
+</div>
+
+## Ready to launch?
+
+You are ready to go. Keep improving the bot by adding new responses and documents as needed.
+
+<div className="mt-6 flex flex-wrap gap-3">
+  <Button asChild size="lg">
+    <a href="/dashboard/bots/new">Create your support bot now</a>
+  </Button>
+  <Button asChild size="lg" variant="secondary">
+    <a href="/contact">Talk to the team</a>
+  </Button>
+</div>

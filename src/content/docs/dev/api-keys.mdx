@@ -1,0 +1,213 @@
+export const metadata = {
+  title: "API Key Architecture",
+  description:
+    "Internal developer notes on how API keys are implemented and used in the app.",
+  tags: ["api-keys", "api keys", "authentication", "rate-limits", "internal"],
+};
+
+# API Key Architecture
+
+This document outlines how **API keys** function in the app, including how requests are authenticated and rate-limited depending on context.
+
+---
+
+## 🔑 Purpose of API Keys
+
+API keys are used to:
+
+- Allow **external usage** of chatbots (e.g. via cURL, SDKs, embedded bots).
+- Apply **rate limits** based on the **owner's subscription plan**.
+- Track and secure usage for analytics and abuse protection.
+
+---
+
+## 🧭 Behavior by Use Case
+
+### 1. Internal (App UI)
+
+- **Source**: `<Chat />` component inside the app.
+- **Header**: No API key needed.
+- **Body**: Includes `{ isInternal: true }`.
+- **Rate Limit Plan**: Determined by the **bot owner's plan** (free/pro/enterprise).
+- **Rate Key**: `ip` address (with fallback to `bot_slug` if needed).
+
+✅ Full access aligned with the bot owner’s subscription level.
+
+---
+
+### 2. External (API Consumers)
+
+#### a. With Valid API Key
+
+- **Header**:  
+  `Authorization: Bearer sk_live_...`
+
+- **Lookups**:
+
+  - Validated against `bot_api_keys`.
+  - Plan is pulled from `bot_user_profiles`.
+
+- **Rate Limit Plan**: Based on the **API key owner's plan**.
+- **Rate Key**: The API key string itself.
+
+✅ Authenticated requests get the correct plan limits.
+
+#### b. Without Valid API Key
+
+- **Rate Limit Plan**: Always `"free"` plan.
+- **Rate Key**: `ip` address.
+
+🚫 No key or invalid key = strict limits.
+
+---
+
+## 🧠 Rate Limit Enforcement Logic
+
+```ts
+if (apiKey) {
+  // External with key
+  type = "api_key"
+  key = apiKey
+  plan = owner plan from bot_user_profiles
+} else if (isInternal && bot_slug) {
+  // Internal Chat component
+  type = "ip_address"
+  key = ip || bot_slug
+  plan = owner plan from bot_user_profiles
+} else {
+  // Public external access
+  type = "ip_address"
+  key = ip
+  plan = "free"
+}
+```
+
+### 🧭 Overview
+
+All chat requests go through `handleChatRequest()` in `lib/chat/handle-chat-requests.ts`.
+
+Every request is checked for either:
+
+- an **API key** (external dev use), or
+- an **internal flag** (Chat UI inside your app),
+  to determine how **rate limiting** is applied.
+
+---
+
+### ✅ 1. Internal (From Your App's UI)
+
+#### Triggered By:
+
+Your `<Chat />` component using the `useChat()` hook.
+
+#### Special Marker:
+
+```ts
+isInternal: true;
+```
+
+#### Behavior:
+
+- No `Authorization` header.
+- Falls into this branch:
+
+  ```ts
+  if (bot_slug && isInternal) {
+    plan = getBotOwnerPlan(bot_slug);
+    limit = PLAN_LIMITS[plan];
+    keyType = "ip_address";
+    rateKey = ip || bot_slug;
+  }
+  ```
+
+- Rate limit is tied to the **bot owner's plan**.
+- The `rateKey` is the user's IP, or the `bot_slug` as fallback.
+- This allows the UI to operate at the owner's quota.
+
+✅ **Ideal for embedded bots in your app UI.**
+
+---
+
+### 🔐 2. External (via API consumers)
+
+#### With API Key
+
+##### Header:
+
+```http
+Authorization: Bearer sk_live_abc123
+```
+
+#### Behavior:
+
+- Matches a row in `bot_api_keys`.
+- From that row, we get the user who owns the key.
+- That user’s `plan` is looked up in `bot_user_profiles`.
+- We apply the corresponding `PLAN_LIMITS[plan]`.
+- Rate key = the API key itself (`rateKey = apiKey`)
+- Key type = `"api_key"`
+
+✅ Enables external API users to inherit the owner's plan limit.
+
+---
+
+#### Without API Key
+
+##### No `Authorization` header
+
+#### Behavior:
+
+- Treated as a public anonymous user.
+- Rate limit plan = `free`
+- Rate key = IP address
+- Key type = `"ip_address"`
+
+🚫 Strictly limited, prevents abuse.
+
+---
+
+### 🔄 Rate Limiting Logic Summary
+
+| Scenario            | Source                 | Key Type     | Rate Key           | Plan Used            |
+| ------------------- | ---------------------- | ------------ | ------------------ | -------------------- |
+| App Chat UI         | `isInternal: true`     | `ip_address` | `ip` or `bot_slug` | bot owner's plan     |
+| External API + Key  | `Authorization` header | `api_key`    | API key string     | API key owner's plan |
+| External API No Key | No header              | `ip_address` | IP address         | `free` plan          |
+
+---
+
+### 🔎 File Responsibility
+
+| File                                 | Role                                   |
+| ------------------------------------ | -------------------------------------- |
+| `use-chat.ts`                        | Sets `isInternal: true` for app bots   |
+| `handle-chat-requests.ts`            | Orchestrates the logic for keys/plans  |
+| `rate-limit.ts`                      | Increments usage + enforces plan limit |
+| `bot_api_keys` + `bot_user_profiles` | Stores API keys and user plans         |
+| `middleware.ts`                      | Restricts `/docs/dev/*` to admins only |
+
+---
+
+### ✅ Example: API key flow
+
+```bash
+curl -X POST http://localhost:3000/api/chat \
+  -H "Authorization: Bearer sk_live_xyz" \
+  -H "Content-Type: application/json" \
+  -d '{ "message": "Hello", "bot_slug": "my-bot" }'
+```
+
+→ Looks up `bot_api_keys → user_id → plan → PLAN_LIMITS[plan]`
+
+---
+
+### ✅ Example: UI flow
+
+User opens a bot in your app:
+
+- Chat hits API with `{ isInternal: true, bot_slug }`
+- Finds bot's owner, gets plan, applies proper limit
+
+---
+
+You're fully covered — **external requests are locked down**, and **internal use inherits correct quotas** transparently.

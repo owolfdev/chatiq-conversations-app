@@ -1,0 +1,291 @@
+export const metadata = {
+  title: "Quick Start Guide",
+  description:
+    "Get up and running with ChatIQ in minutes. Create your first AI chatbot, tune it, and embed it on your website.",
+  tags: [
+    "quick-start",
+    "quick start",
+    "getting-started",
+    "setup",
+    "embed",
+    "setup guide",
+  ],
+};
+
+# Quick Start Guide
+
+Welcome to ChatIQ! This guide will walk you through creating your first AI chatbot in just a few minutes.
+
+Skip this guide and click **Create New Bot** in your dashboard to get started.
+
+---
+
+## What is ChatIQ?
+
+ChatIQ is a platform that lets you create custom AI chatbots powered by your own knowledge base. Your chatbot can:
+
+- Answer questions based on your documents
+- Maintain conversation context
+- Be embedded on your website
+- Be accessed via API
+
+---
+
+## Step 1: Create Your Account
+
+1. Go to [chatiq.io](https://chatiq.io) and click **Sign Up**
+2. Create an account with your email or use a social login
+3. Verify your email address (check your inbox)
+4. You'll be redirected to your dashboard
+
+**Tip:** Start with the Evaluation plan to explore all features!
+
+---
+
+## Step 2: Create Your First Bot
+
+1. In your dashboard, click **Bots** in the sidebar
+2. Click **Create New Bot**
+3. Fill in the bot details:
+   - **Description**: Who the bot is for and what it should solve (80–200 words is ideal)
+   - **Tone**: Optional personality or voice
+   - **Website**: Optional URL to ingest (about, product, or docs page)
+   - **Support Contact**: Optional email, URL, or phone to share with users
+4. Click **Create Bot**
+
+ChatIQ will generate the bot name, system prompt, and starter responses automatically. You can refine everything in **Tune** and **Settings** after creation.
+
+**Example Description:**
+
+```
+We need a support bot for our B2B analytics platform. It should help new users understand onboarding, explain pricing tiers, and route security questions to support@company.com. Keep answers concise and professional.
+```
+
+<div className="my-6">
+  <Button
+    asChild
+    size="lg"
+    className="bg-emerald-600 hover:bg-emerald-700 no-underline"
+  >
+    <a href="/dashboard/bots/new">+ Create New Bot</a>
+  </Button>
+</div>
+
+---
+
+## Step 3: Add Knowledge to Your Bot
+
+Your bot needs knowledge to answer questions. Add documents that contain the information your bot should know.
+
+### Option A: Add a Document
+
+1. Click **Documents** in the sidebar
+2. Click **New Document**
+3. Fill in:
+   - **Title**: Name your document (e.g., "Product FAQ")
+   - **Content**: Paste or type the information your bot should know
+   - **Tags**: Optional tags for organization (e.g., "faq", "product")
+4. **Link to Bot**: Select your bot from the dropdown
+5. Click **Save Changes**
+
+The document will automatically be processed for AI search (this takes a few seconds).
+
+### Option B: Upload Multiple Documents
+
+You can add multiple documents and link them to the same bot. Each document becomes part of your bot's knowledge base.
+
+**Tips for Better Results:**
+
+- Write in clear, conversational language
+- Use question-answer format when possible
+- Include specific details (prices, dates, names)
+- Break long documents into smaller, focused documents
+
+---
+
+## Step 4: Test Your Bot
+
+After creation, you'll land on your bot's **Test** page. You can always return to it from **Bots** in the sidebar.
+
+Try asking questions based on your documents:
+- "What are your business hours?"
+- "How do I reset my password?"
+- "What products do you offer?"
+
+Your bot should answer based on the documents you added!
+
+**Troubleshooting:**
+
+- If the bot doesn't answer correctly, check that your documents are fully processed (look for the embedding status)
+- Make sure your documents contain relevant information
+- Try rephrasing your questions
+
+---
+
+## Step 5: Tune Your Bot
+
+Open **Tune** to refine the bot's behavior and add response patterns. Use the **Tune** button on your bot page.
+
+Here you can:
+
+- Update the **System Prompt** (role, scope, tone, and guardrails)
+- Set a **Default Response** for when AI is unavailable
+- Add **Pre-configured Responses** for high-confidence replies (greetings, contact, pricing)
+- Chat with the bot in private mode to test changes instantly
+
+**Example System Prompt:**
+
+```
+You are a helpful customer support assistant. Be friendly, concise, and always answer based on the provided documentation. If you are unsure, ask clarifying questions or route to support.
+```
+
+## Step 6: Review Settings
+
+Open **Settings** to control visibility, status, and appearance. Use the **Settings** button on your bot page.
+
+In Settings you can:
+
+- Update the bot **Name**, **Description**, and **Slug**
+- Set **Visibility** (Public/Private) and **Status** (Active/Draft/Archived)
+- Enable **Rich Responses (Markdown)**
+- Toggle **AI Responses** on or off
+- Customize the widget **colors and styling**
+
+---
+
+## Step 7: Embed on Your Website
+
+### Option A: Public Chat Page
+
+Each bot has a public chat page you can link to:
+
+```
+https://bot.chatiq.io/your-bot-slug
+```
+
+Share this URL or link to it from your website. Set **Visibility → Public** in Settings to enable it.
+
+### Option B: Embed Widget (Fastest)
+
+Generate your embed code by clicking **Embed** on your bot page.
+
+You'll create or select an API key, choose colors/position, and get a script tag like:
+
+```html
+<script
+  src="https://www.chatiq.io/widget.js"
+  data-bot-slug="your-bot-slug"
+  data-api-key="your-api-key"
+  data-source-label="web"
+  data-position="bottom-right"
+  data-primary-color="#10b981"
+  async
+></script>
+```
+
+**Security note:** Use the **allowed domains** field on the embed page to restrict where the key can run.
+
+### Option C: Use the API
+
+For full control, use the ChatIQ API to integrate the chatbot into your application. See the [API Getting Started Guide](/docs/api-getting-started) for details.
+
+---
+
+## Step 8: Monitor and Improve
+
+### Rich responses (Markdown)
+
+- **Default:** Bots reply in plain text.
+- **Opt-in:** In **Dashboard → Bots → Settings → Rich responses (Markdown)**, toggle on to let the bot use Markdown (bullets, code fences, emphasis) for clearer answers.
+- **Widget compatibility:** If you enable this, ensure your chat UI renders Markdown.
+- **API clients:** If you use the API directly, either render Markdown on your side or leave the toggle off to keep plain text.
+
+### View Analytics
+
+1. Click **Analytics** in the sidebar
+2. See:
+   - Total conversations
+   - Messages sent
+   - Popular questions
+   - User engagement
+
+### Improve Your Bot
+
+- **Add more documents** as you discover gaps in knowledge
+- **Review conversations** to see what users are asking
+- **Update system prompts** to refine bot behavior
+- **Test regularly** to ensure quality responses
+
+---
+
+## Next Steps
+
+### For Website Integration
+
+- Read the [API Getting Started Guide](/docs/api-getting-started)
+- Check out the [Streaming Guide](/docs/api-streaming) for real-time responses
+- Explore [Next.js Integration](/docs/integrations/nextjs)
+
+### For Advanced Features
+
+- **Teams**: Invite team members to collaborate
+- **API Keys**: Generate API keys for programmatic access
+- **Documents API**: Manage documents via API
+- **Customization**: Fine-tune system prompts and responses
+- **Pre-configured & Cached Responses**: Optimize performance and reduce costs with [Pre-configured and Cached Responses Guide](/docs/canned-and-cached-responses-guide)
+
+### For Support
+
+- **Documentation**: Browse all guides in the [Docs](/docs)
+- **Contact**: Reach out at support@chatiq.io
+- **Dashboard**: Access your dashboard at [chatiq.io/dashboard](https://chatiq.io/dashboard)
+
+---
+
+## Common Questions
+
+### How long does it take to process documents?
+
+Most documents are processed within 10-30 seconds. Large documents may take longer. Check the embedding status on the Documents page.
+
+### Can I edit documents after creating them?
+
+Yes! Click **Documents** → Select a document → **Edit**. Changes will trigger re-processing.
+
+### How many documents can I add?
+
+This depends on your plan:
+
+- **Evaluation**: 1 knowledge document (up to 20k characters)
+- **Pro**: Up to 100 documents
+- **Enterprise**: Custom limits
+
+Check your plan details in **Settings** → **Billing**.
+
+### Can I use the bot without documents?
+
+Yes, but it will only use its general knowledge (not your specific information). For best results, add relevant documents.
+
+### How do I delete a bot?
+
+Click **Bots** → Select your bot → **Delete Bot**. This action cannot be undone.
+
+---
+
+## Tips for Success
+
+1. **Start Small**: Create one bot with a few focused documents
+2. **Test Thoroughly**: Ask various questions to ensure quality
+3. **Iterate**: Add documents and refine based on real conversations
+4. **Monitor**: Check analytics to understand user needs
+5. **Keep Updated**: Regularly update documents with new information
+
+---
+
+## Need Help?
+
+- **Documentation**: [Full Docs](/docs)
+- **API Reference**: [API Docs](/docs/api)
+- **Support**: support@chatiq.io
+
+Welcome to ChatIQ! 🚀

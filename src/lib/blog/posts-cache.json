@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-01-01T22:01:34.515Z",
+  "count": 2,
+  "posts": [
+    {
+      "id": "blog-002",
+      "type": "blog",
+      "title": "How To Create Your AI Support Bot In Minutes",
+      "author": "ChatIQ Team",
+      "publishDate": "2025-11-04",
+      "description": "A quick, practical guide to launching an AI support bot fast with Chatiq.",
+      "categories": [
+        "tutorial",
+        "support",
+        "getting-started"
+      ],
+      "tags": [
+        "ai",
+        "chatbot",
+        "support",
+        "rag",
+        "quick-start"
+      ],
+      "modifiedDate": "2025-11-10",
+      "image": "/blog/images/build-your-ai-support-bot-in-10-minutes.jpg",
+      "draft": false,
+      "relatedPosts": [],
+      "slug": "build-your-ai-support-bot-in-10-minutes",
+      "filePath": "src/content/blog/build-your-ai-support-bot-in-10-minutes.mdx",
+      "readingTime": 3,
+      "imageStatus": "complete"
+    },
+    {
+      "id": "blog-001",
+      "type": "blog",
+      "title": "Welcome to The ChatIQ Blog",
+      "author": "ChatIQ Team",
+      "publishDate": "2025-11-01",
+      "description": "Welcome to the ChatIQ blog.",
+      "categories": [
+        "tutorial",
+        "getting-started",
+        "support"
+      ],
+      "tags": [
+        "ai",
+        "chatbot",
+        "support",
+        "tutorial",
+        "quick-start"
+      ],
+      "modifiedDate": "2025-11-01",
+      "image": "/blog/images/welcome-to-our-blog.jpg",
+      "draft": false,
+      "relatedPosts": [],
+      "slug": "welcome-to-the-chatiq-blog",
+      "filePath": "src/content/blog/welcome-to-the-chatiq-blog.mdx",
+      "readingTime": 3,
+      "imageStatus": "complete"
+    }
+  ]
+}

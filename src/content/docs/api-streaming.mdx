@@ -1,0 +1,455 @@
+export const metadata = {
+  title: "Streaming Guide",
+  description:
+    "Complete guide to handling Server-Sent Events (SSE) streaming with the ChatIQ API.",
+  tags: [
+    "api",
+    "rest",
+    "rest-api",
+    "rest api",
+    "streaming",
+    "sse",
+    "realtime",
+    "server-sent events",
+  ],
+};
+
+# Streaming Guide
+
+The ChatIQ API supports Server-Sent Events (SSE) for real-time streaming responses. This guide covers the exact format, parsing strategies, and common patterns.
+
+---
+
+## SSE Format Specification
+
+ChatIQ uses a standard SSE format with the following event types:
+
+### Content Chunks
+
+Each chunk of the response is sent as:
+
+```
+data: {"choices":[{"delta":{"content":"chunk text here"}}]}
+
+```
+
+**Format:**
+
+- Event type: `data:`
+- Content: JSON object with `choices` array
+- Each choice has a `delta` object with `content` string
+- Multiple chunks are sent sequentially
+
+### Conversation ID
+
+After all content chunks, the conversation ID is sent as a separate event:
+
+```
+data: {"conversationId":"uuid-here"}
+
+```
+
+**Note:** Field name is `conversationId` (camelCase), not `conversation_id`.
+
+### Completion Marker
+
+The stream ends with:
+
+```
+data: [DONE]
+
+```
+
+### Error Events
+
+If an error occurs during streaming, it's sent as an SSE event before `[DONE]`:
+
+```
+data: {"error":{"code":"RATE_LIMIT","message":"Rate limit exceeded"}}
+
+data: [DONE]
+```
+
+---
+
+## Complete Parsing Example
+
+Here's a complete example that handles all event types correctly:
+
+```javascript
+async function streamChatResponse(message, apiKey, conversationId = null) {
+  const response = await fetch("https://chatiq.io/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      message,
+      bot_slug: "your-bot-slug",
+      stream: true,
+      conversation_id: conversationId,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if (!reader) {
+    throw new Error("No response body");
+  }
+
+  let fullResponse = "";
+  let receivedConversationId = null;
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        // Process any remaining buffer
+        if (buffer.trim()) {
+          processBuffer(buffer.trim());
+        }
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process all complete "data: {...}" entries
+      while (buffer.includes("data: ")) {
+        const dataIndex = buffer.indexOf("data: ");
+
+        // Skip any content before "data: " (shouldn't happen in SSE)
+        if (dataIndex > 0) {
+          buffer = buffer.slice(dataIndex);
+          continue;
+        }
+
+        // Find the end of this data entry
+        const afterData = buffer.slice(6); // Skip "data: "
+        const dataEnd = afterData.indexOf("data: ");
+        const newlineIndex = afterData.indexOf("\n");
+
+        // Use the earliest of: next "data: ", newline, or end of buffer
+        let endIndex = dataEnd;
+        if (
+          newlineIndex !== -1 &&
+          (endIndex === -1 || newlineIndex < endIndex)
+        ) {
+          endIndex = newlineIndex;
+        }
+
+        // If no end found, wait for more data
+        if (endIndex === -1) {
+          break;
+        }
+
+        // Extract the data content
+        const dataContent = afterData.slice(0, endIndex).trim();
+
+        // Remove processed part from buffer
+        buffer = buffer.slice(6 + endIndex);
+
+        // Handle [DONE] marker
+        if (dataContent === "[DONE]") {
+          return {
+            response: fullResponse,
+            conversationId: receivedConversationId,
+          };
+        }
+
+        if (!dataContent) continue;
+
+        try {
+          const parsed = JSON.parse(dataContent);
+
+          // Handle content chunks
+          if (parsed.choices?.[0]?.delta?.content) {
+            const chunk = parsed.choices[0].delta.content;
+            fullResponse += chunk;
+            // Emit chunk to UI or callback
+            onChunk(chunk);
+          }
+          // Handle conversation ID
+          else if (parsed.conversationId) {
+            receivedConversationId = parsed.conversationId;
+          }
+          // Handle errors
+          else if (parsed.error) {
+            throw new Error(parsed.error.message || "Stream error");
+          }
+        } catch (parseError) {
+          console.warn("Failed to parse SSE data:", dataContent, parseError);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return {
+    response: fullResponse,
+    conversationId: receivedConversationId,
+  };
+}
+
+function onChunk(chunk) {
+  // Update UI with new chunk
+  console.log("Received chunk:", chunk);
+}
+```
+
+---
+
+## React Hook Example
+
+Here's a reusable React hook for streaming:
+
+```typescript
+import { useState, useCallback } from "react";
+
+interface UseStreamingChatOptions {
+  apiKey: string;
+  botSlug: string;
+  onChunk?: (chunk: string) => void;
+}
+
+export function useStreamingChat({
+  apiKey,
+  botSlug,
+  onChunk,
+}: UseStreamingChatOptions) {
+  const [response, setResponse] = useState("");
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const sendMessage = useCallback(
+    async (message: string) => {
+      setIsLoading(true);
+      setError(null);
+      setResponse("");
+
+      try {
+        const result = await streamChatResponse(
+          message,
+          apiKey,
+          conversationId
+        );
+        setResponse(result.response);
+        if (result.conversationId) {
+          setConversationId(result.conversationId);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Unknown error"));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [apiKey, botSlug, conversationId, onChunk]
+  );
+
+  return {
+    sendMessage,
+    response,
+    conversationId,
+    isLoading,
+    error,
+  };
+}
+```
+
+---
+
+## Error Handling
+
+### HTTP Errors
+
+Check response status before processing stream:
+
+```javascript
+if (!response.ok) {
+  const errorData = await response.json().catch(() => ({}));
+  throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+}
+```
+
+### Stream Errors
+
+Errors can be sent within the SSE stream:
+
+```javascript
+if (parsed.error) {
+  throw new Error(parsed.error.message || "Stream error");
+}
+```
+
+### Network Errors
+
+Handle connection issues:
+
+```javascript
+try {
+  // ... streaming code
+} catch (error) {
+  if (error instanceof TypeError && error.message.includes("fetch")) {
+    // Network error
+    throw new Error("Network error: Unable to connect to ChatIQ API");
+  }
+  throw error;
+}
+```
+
+---
+
+## Common Patterns
+
+### Pattern 1: Server-Side Proxy (Recommended)
+
+Use a Next.js API route to proxy requests and hide your API key:
+
+```typescript
+// app/api/chatbot/route.ts
+export async function POST(request: Request) {
+  const { message, conversation_id } = await request.json();
+
+  const chatIQResponse = await fetch("https://chatiq.io/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.CHATIQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      message,
+      bot_slug: process.env.CHATIQ_BOT_SLUG,
+      stream: true,
+      conversation_id,
+    }),
+  });
+
+  // Stream the response back
+  return new Response(chatIQResponse.body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+```
+
+**Benefits:**
+
+- API key stays on server (never exposed to client)
+- No CORS issues
+- Can add custom error handling/logging
+
+### Pattern 2: Direct Client-Side (Requires CORS)
+
+If ChatIQ CORS is configured for your domain:
+
+```javascript
+// Direct fetch from browser
+const response = await fetch("https://chatiq.io/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`, // ⚠️ Exposes API key to client
+  },
+  body: JSON.stringify({
+    message: "Hello",
+    bot_slug: "my-bot",
+    stream: true,
+  }),
+});
+```
+
+**Note:** This exposes your API key in client-side code. Use with caution.
+
+### Pattern 3: Server-Side Only (No Streaming)
+
+For server-side applications, use JSON mode:
+
+```javascript
+const response = await fetch("https://chatiq.io/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  },
+  body: JSON.stringify({
+    message: "Hello",
+    bot_slug: "my-bot",
+    stream: false, // JSON response
+  }),
+});
+
+const data = await response.json();
+console.log(data.response); // Full response text
+console.log(data.conversationId); // Conversation ID
+```
+
+---
+
+## Troubleshooting
+
+### Issue: Buffer Not Processing Correctly
+
+**Symptom:** Chunks are missing or incomplete
+
+**Solution:** Ensure you're handling incomplete buffers correctly:
+
+```javascript
+// Wait for complete entries
+if (endIndex === -1) {
+  break; // Wait for more data
+}
+```
+
+### Issue: Conversation ID Not Received
+
+**Symptom:** `conversationId` is always null
+
+**Solution:** Check that you're parsing the separate `conversationId` event:
+
+```javascript
+if (parsed.conversationId) {
+  receivedConversationId = parsed.conversationId;
+}
+```
+
+### Issue: Errors Not Caught
+
+**Symptom:** Stream fails silently
+
+**Solution:** Always check for error events:
+
+```javascript
+if (parsed.error) {
+  throw new Error(parsed.error.message);
+}
+```
+
+---
+
+## Best Practices
+
+1. **Always handle errors** - Check for error events in the stream
+2. **Use server-side proxy** - Keep API keys secure
+3. **Handle incomplete buffers** - Don't parse incomplete JSON
+4. **Release readers** - Always call `reader.releaseLock()` in finally block
+5. **Track conversation ID** - Maintain context across messages
+6. **Implement retry logic** - Handle network failures gracefully
+
+---
+
+## Next Steps
+
+- See [API Reference](/docs/api) for all endpoints
+- See [Getting Started](/docs/api-getting-started) for onboarding

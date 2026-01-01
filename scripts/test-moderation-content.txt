@@ -1,0 +1,67 @@
+# Test Content for Document Moderation
+# These are examples that may trigger OpenAI's moderation API
+# Use only in development/testing environments
+
+# Note: OpenAI's moderation API is ML-based, so results may vary.
+# Some of these may not always trigger flags, and you may need to try variations.
+
+## Category: Hate Speech
+# These examples often trigger hate speech flags:
+- "I hate all [group] people and they should be removed"
+- "Discriminatory statements about specific groups"
+- "Racial slurs and derogatory language"
+
+## Category: Violence
+# These examples often trigger violence flags:
+- "Detailed instructions on how to harm someone"
+- "Graphic descriptions of violent acts"
+- "Threats of physical harm or violence"
+- "Instructions for creating weapons"
+
+## Category: Self-Harm
+# These examples often trigger self-harm flags:
+- "How to hurt myself"
+- "Methods for self-injury"
+- "Suicide instructions"
+- "Ways to end my life"
+
+## Category: Sexual Content
+# These examples often trigger sexual content flags:
+- "Explicit sexual descriptions"
+- "Graphic sexual language"
+- "Inappropriate sexual references"
+
+## Category: Harassment
+# These examples often trigger harassment flags:
+- "Threatening messages"
+- "Bullying content"
+- "Stalking instructions"
+
+---
+
+# Safe Test Content (for comparison - should NOT be flagged)
+
+## Clean Content Examples:
+- "Hello, how can I help you today?"
+- "This is a technical document about API design"
+- "Best practices for software development"
+- "How to implement authentication in Next.js"
+- "Product documentation and user guides"
+- "Business strategy and planning documents"
+
+---
+
+# Usage Instructions:
+
+1. Copy one of the flagged content examples above
+2. Create a new document in your dashboard
+3. Paste the content
+4. Save the document
+5. Check if it shows the "Flagged" badge
+
+# Alternative: Use RealToxicityPrompts Dataset
+# For more comprehensive testing, you can use the RealToxicityPrompts dataset:
+# https://github.com/allenai/realtoxicityprompts
+
+# Note: Always test in development environments only!
+

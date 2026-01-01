@@ -1,0 +1,343 @@
+export const metadata = {
+  title: "API Reference",
+  description:
+    "Complete API documentation for integrating ChatIQ chatbots into your applications.",
+  tags: [
+    "api",
+    "rest",
+    "rest-api",
+    "rest api",
+    "reference",
+    "authentication",
+    "endpoints",
+  ],
+};
+
+# API Reference
+
+The ChatIQ API allows you to integrate AI chatbots into your applications, websites, and services. This guide covers authentication, endpoints, and usage examples.
+
+---
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://www.chatiq.io/api
+```
+
+**Note:** `chatiq.io` redirects to `www.chatiq.io`, so always use the `www` subdomain.
+
+{/* For local development: */}
+
+{/* ``` */}
+{/* http://localhost:3000/api */}
+{/* ``` */}
+
+---
+
+## Authentication
+
+API requests are authenticated using API keys. You can generate API keys from your dashboard at `/dashboard/api-keys`.
+
+### Using API Keys
+
+Include your API key in the `Authorization` header as a Bearer token:
+
+```http
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+### Generating API Keys
+
+1. Navigate to **API Keys** in your dashboard
+2. Click **Create New Key**
+3. Select the bot this key should have access to
+4. Give it a descriptive label (e.g., "Production" or "Development")
+5. Copy the key immediately — you won't be able to see it again
+
+**Important:** Keep your API keys secure. Never commit them to version control or expose them in client-side code.
+
+---
+
+## Chat Endpoint
+
+### POST `/api/chat`
+
+Send a message to a chatbot and receive a response.
+
+#### Request Headers
+
+```http
+Content-Type: application/json
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Request Body
+
+```json
+{
+  "message": "What are your business hours?",
+  "bot_slug": "support-bot",
+  "stream": false,
+  "history": [],
+  "conversation_id": null,
+  "private_mode": false
+}
+```
+
+| Field             | Type    | Required | Description                                                                                                                                    |
+| ----------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message`         | string  | Yes      | The user's message to send to the bot                                                                                                          |
+| `bot_slug`        | string  | Yes      | The unique slug identifier for your bot                                                                                                        |
+| `stream`          | boolean | No       | Set to `false` for JSON response, `true` (default) for streaming                                                                               |
+| `history`         | array   | No       | Previous messages in the conversation (for context)                                                                                            |
+| `conversation_id` | string  | No       | ID of an existing conversation to continue                                                                                                     |
+| `private_mode`    | boolean | No       | When `true`, the conversation will not be saved to the database. Useful for privacy-sensitive queries or GDPR compliance. Defaults to `false`. |
+
+#### Response Format
+
+**JSON Mode** (`stream: false`):
+
+```json
+{
+  "response": "Our business hours are Monday through Friday, 9 AM to 5 PM EST.",
+  "conversationId": "uuid-here"
+}
+```
+
+**Streaming Mode** (`stream: true` or omitted):
+
+The API returns a Server-Sent Events (SSE) stream:
+
+```
+data: {"choices":[{"delta":{"content":"Our"}}]}
+
+data: {"choices":[{"delta":{"content":" business"}}]}
+
+data: {"choices":[{"delta":{"content":" hours"}}]}
+
+...
+
+data: {"conversationId":"uuid-here"}
+
+data: [DONE]
+```
+
+#### Example: cURL (JSON Mode)
+
+```bash
+curl -X POST https://chatiq.io/api/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk_live_your_api_key_here" \
+  -d '{
+    "message": "What are your business hours?",
+    "bot_slug": "support-bot",
+    "stream": false
+  }'
+```
+
+#### Example: JavaScript (Fetch API)
+
+```javascript
+const response = await fetch("https://chatiq.io/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer sk_live_your_api_key_here",
+  },
+  body: JSON.stringify({
+    message: "What are your business hours?",
+    bot_slug: "support-bot",
+    stream: false,
+  }),
+});
+
+const data = await response.json();
+console.log(data.response);
+```
+
+#### Example: JavaScript (Streaming)
+
+```javascript
+const response = await fetch("https://chatiq.io/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer sk_live_your_api_key_here",
+  },
+  body: JSON.stringify({
+    message: "What are your business hours?",
+    bot_slug: "support-bot",
+    stream: true,
+  }),
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value);
+  const lines = chunk.split("\n");
+
+  for (const line of lines) {
+    if (line.startsWith("data: ")) {
+      const data = line.slice(6);
+      if (data === "[DONE]") break;
+
+      const parsed = JSON.parse(data);
+      if (parsed.choices?.[0]?.delta?.content) {
+        process.stdout.write(parsed.choices[0].delta.content);
+      }
+    }
+  }
+}
+```
+
+#### Example: Python
+
+```python
+import requests
+
+url = "https://chatiq.io/api/chat"
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer sk_live_your_api_key_here"
+}
+data = {
+    "message": "What are your business hours?",
+    "bot_slug": "support-bot",
+    "stream": False
+}
+
+response = requests.post(url, json=data, headers=headers)
+result = response.json()
+print(result["response"])
+```
+
+---
+
+## Conversation Management
+
+### Private Mode
+
+For privacy-sensitive conversations or GDPR compliance, you can enable private mode by setting `private_mode: true` in your request. When enabled:
+
+- The conversation will work normally (user receives responses)
+- **No conversation data is saved to the database**
+- The conversation is completely ephemeral (exists only in the current session)
+- No conversation history will be available after the session ends
+
+**Example:**
+
+```json
+{
+  "message": "What are your business hours?",
+  "bot_slug": "support-bot",
+  "private_mode": true
+}
+```
+
+**Note:** When `private_mode` is enabled, the `conversationId` in the response will be `null` or omitted, as no conversation record is created.
+
+### Continuing Conversations
+
+To maintain context across multiple messages, include the `conversation_id` and `history` in your requests:
+
+```json
+{
+  "message": "What about weekends?",
+  "bot_slug": "support-bot",
+  "conversation_id": "uuid-from-previous-response",
+  "history": [
+    {
+      "role": "user",
+      "content": "What are your business hours?"
+    },
+    {
+      "role": "assistant",
+      "content": "Our business hours are Monday through Friday, 9 AM to 5 PM EST."
+    }
+  ],
+  "stream": false
+}
+```
+
+The API will return the same `conversationId` for all messages in the same conversation thread.
+
+---
+
+## Error Handling
+
+The API uses standard HTTP status codes:
+
+| Status Code | Meaning                                   |
+| ----------- | ----------------------------------------- |
+| 200         | Success                                   |
+| 400         | Bad Request — Invalid parameters          |
+| 401         | Unauthorized — Invalid or missing API key |
+| 429         | Too Many Requests — Rate limit exceeded   |
+| 500         | Internal Server Error                     |
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "Invalid API key",
+    "details": {}
+  }
+}
+```
+
+---
+
+## Rate Limits
+
+Rate limits are based on your subscription plan:
+
+| Plan       | Daily Message Limit |
+| ---------- | ------------------- |
+| Evaluation | 25 messages/day     |
+| Pro        | 1,000 messages/day  |
+| Enterprise | Custom limits       |
+
+**Note:** The Evaluation plan also has an overall 100 AI-call cap during the 14-day evaluation window.
+
+Rate limits are tracked per API key and reset daily. When you exceed your limit, you'll receive a `429 Too Many Requests` response.
+
+---
+
+## CORS
+
+The API supports Cross-Origin Resource Sharing (CORS) for browser-based integrations. In development, all origins are allowed. In production, CORS is configured to allow requests from your configured domains.
+
+To configure additional allowed origins, set the `CORS_ALLOWED_ORIGINS` environment variable (comma-separated list of origins).
+
+---
+
+## Best Practices
+
+1. **Store API keys securely**: Use environment variables or secure key management services
+2. **Handle errors gracefully**: Always check response status codes and handle errors appropriately
+3. **Respect rate limits**: Implement exponential backoff when hitting rate limits
+4. **Use conversation IDs**: Maintain conversation context for better user experience
+5. **Monitor usage**: Track your API usage to stay within plan limits
+
+---
+
+## Additional Resources
+
+- **[Getting Started Guide](/docs/api-getting-started)** - Step-by-step onboarding
+- **[Streaming Guide](/docs/api-streaming)** - Complete SSE streaming documentation
+- **[Documents API](/docs/api-documents)** - Document management and embedding status
+- **[OpenAPI Specification](/openapi.json)** - Machine-readable API spec
+
+## Support
+
+Need help? Contact us at **support@chatiq.io** or visit your dashboard for more resources.

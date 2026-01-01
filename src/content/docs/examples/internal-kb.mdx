@@ -1,0 +1,370 @@
+export const metadata = {
+  title: "Internal Knowledge Base Bot",
+  description: "Create an internal knowledge base chatbot for your team using ChatIQ.",
+  tags: ["examples", "internal", "knowledge-base", "team", "knowledge base"],
+};
+
+# Internal Knowledge Base Bot
+
+Build an internal knowledge base chatbot that helps your team find information quickly, answer questions about company policies, and access documentation.
+
+---
+
+## Overview
+
+An internal knowledge base bot helps teams:
+- Find answers to common questions instantly
+- Access company policies and procedures
+- Search internal documentation
+- Onboard new team members
+- Share institutional knowledge
+
+**Best for:** Teams, companies, organizations with internal documentation
+
+---
+
+## Step 1: Create Your Bot
+
+1. Go to **Bots** → **Create New Bot**
+2. Fill in the details:
+
+   **Name:** `Internal Knowledge Base` or `Team Assistant`
+   
+   **Description:** `Helps team members find information and answers questions about our company`
+   
+   **Slug:** `internal-kb` or `team-assistant`
+   
+   **System Prompt:**
+   ```
+   You are an internal knowledge base assistant for our team. Your goal is to help 
+   team members find information quickly and accurately.
+   
+   Guidelines:
+   - Answer questions based on the provided documentation
+   - Be professional but friendly
+   - If information isn't in the documentation, say so clearly
+   - Reference specific documents or sections when possible
+   - For sensitive information, remind users to check with HR or management
+   - Use clear, concise language
+   - Break down complex topics into digestible parts
+   ```
+   
+   **Status:** `Active` (or `Private` if you want team-only access)
+
+3. Click **Save Changes**
+
+---
+
+## Step 2: Add Internal Documents
+
+Create documents covering your internal knowledge base:
+
+### Document 1: Company Policies
+
+**Title:** `Company Policies and Procedures`
+
+**Content:**
+```
+# Company Policies and Procedures
+
+## Time Off Policy
+
+**Vacation Days:**
+- Full-time employees: 20 days per year
+- Accrues at 1.67 days per month
+- Request through HR portal at least 2 weeks in advance
+
+**Sick Leave:**
+- 10 days per year
+- No doctor's note required for 3 days or less
+- Contact HR for extended leave
+
+**Holidays:**
+- Company observes 10 federal holidays
+- See company calendar for specific dates
+
+## Remote Work Policy
+
+- Hybrid schedule: 3 days in office, 2 days remote
+- Remote days must be approved by manager
+- Core hours: 10 AM - 3 PM (must be available)
+- Equipment provided for remote work
+
+## Code of Conduct
+
+- Treat all colleagues with respect
+- Maintain confidentiality of company information
+- Report concerns to HR or management
+- Zero tolerance for harassment or discrimination
+```
+
+**Tags:** `policies, hr, procedures, time-off`
+
+**Link to Bot:** Select your internal KB bot
+
+---
+
+### Document 2: Onboarding Guide
+
+**Title:** `New Employee Onboarding Guide`
+
+**Content:**
+```
+# New Employee Onboarding Guide
+
+## First Week Checklist
+
+1. Complete HR paperwork
+2. Set up accounts (email, Slack, tools)
+3. Meet with manager for role expectations
+4. Review company handbook
+5. Attend orientation session
+
+## Tools and Access
+
+**Required Tools:**
+- Email: Outlook
+- Communication: Slack
+- Project Management: Asana
+- Documentation: Notion
+- Code Repository: GitHub
+
+**Access Requests:**
+- Submit through IT portal
+- Allow 24-48 hours for processing
+- Contact IT support for urgent requests
+
+## Getting Help
+
+- **HR Questions:** hr@company.com
+- **IT Support:** it@company.com or #it-support Slack channel
+- **Manager:** Your direct manager
+- **Buddy Program:** Assigned buddy for first 30 days
+```
+
+**Tags:** `onboarding, new-employee, checklist, tools`
+
+---
+
+### Document 3: Technical Documentation
+
+**Title:** `Technical Setup and Development Guide`
+
+**Content:**
+```
+# Technical Setup and Development Guide
+
+## Development Environment
+
+**Required Software:**
+- Node.js 18+ or Python 3.10+
+- Git
+- Docker (for local development)
+- VS Code or your preferred IDE
+
+**Setup Steps:**
+1. Clone repository: `git clone https://github.com/company/repo`
+2. Install dependencies: `npm install` or `pip install -r requirements.txt`
+3. Copy `.env.example` to `.env` and configure
+4. Run migrations: `npm run migrate`
+5. Start dev server: `npm run dev`
+
+## Code Standards
+
+- Follow ESLint/Prettier configuration
+- Write tests for new features
+- Submit PRs for review before merging
+- Use conventional commit messages
+
+## Deployment Process
+
+1. Create feature branch
+2. Develop and test locally
+3. Submit PR with description
+4. Get code review approval
+5. Merge to main (auto-deploys to staging)
+6. Test on staging
+7. Deploy to production via CI/CD
+```
+
+**Tags:** `technical, development, setup, deployment`
+
+---
+
+### Document 4: Benefits and Perks
+
+**Title:** `Employee Benefits and Perks`
+
+**Content:**
+```
+# Employee Benefits and Perks
+
+## Health Insurance
+
+- Medical, dental, and vision coverage
+- Company covers 80% of premiums
+- Coverage starts first day of employment
+- Dependents eligible for coverage
+
+## Retirement
+
+- 401(k) with 4% company match
+- Vested immediately
+- Managed through Fidelity
+
+## Professional Development
+
+- $2,000 annual learning budget
+- Conference attendance support
+- Book reimbursement program
+- Internal training sessions
+
+## Perks
+
+- Free lunch on Fridays
+- Snacks and beverages in kitchen
+- Gym membership reimbursement ($50/month)
+- Flexible work hours
+- Parental leave: 12 weeks paid
+```
+
+**Tags:** `benefits, perks, hr, insurance`
+
+---
+
+## Step 3: Configure Bot Settings
+
+### Make Bot Private (Recommended)
+
+1. Go to your bot's **Settings**
+2. Set **Visibility** to `Private`
+3. This ensures only your team can access it
+
+### Customize System Prompt
+
+Adjust the system prompt based on your company culture:
+
+```
+You are a helpful internal assistant for [Company Name]. Help team members 
+find information about policies, procedures, tools, and benefits.
+
+Be friendly and approachable. If you don't know something, direct them to 
+the right person or resource.
+```
+
+---
+
+## Step 4: Test Your Bot
+
+Test with common questions:
+
+- "How do I request time off?"
+- "What are our company holidays?"
+- "How do I set up my development environment?"
+- "What benefits are available?"
+- "What's the remote work policy?"
+
+---
+
+## Step 5: Share with Your Team
+
+### Option 1: Direct Link
+
+Share the bot's public chat page URL (if public) or dashboard link (if private).
+
+### Option 2: Embed in Internal Tools
+
+Embed the bot in your:
+- Company intranet
+- Internal wiki (Notion, Confluence)
+- Slack workspace (via webhook)
+- Internal dashboard
+
+### Option 3: API Integration
+
+Use the API to integrate into existing tools:
+
+```javascript
+// Example: Add to internal dashboard
+const response = await fetch('https://chatiq.io/api/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    message: userQuestion,
+    bot_slug: 'internal-kb',
+  }),
+});
+```
+
+---
+
+## Best Practices
+
+### Keep Content Updated
+
+- Review and update documents monthly
+- Add new policies as they're created
+- Remove outdated information
+- Archive old documents
+
+### Organize with Tags
+
+Use consistent tags:
+- `policies` - Company policies
+- `hr` - HR-related content
+- `technical` - Technical documentation
+- `onboarding` - New employee info
+- `benefits` - Benefits and perks
+
+### Monitor Usage
+
+- Check analytics to see common questions
+- Add documents for frequently asked questions
+- Update system prompt based on feedback
+
+### Security Considerations
+
+- Keep sensitive information out of the bot
+- Use private bot visibility for internal use
+- Review documents before adding
+- Consider access controls for sensitive content
+
+---
+
+## Example Use Cases
+
+### HR Questions
+- "What's our parental leave policy?"
+- "How do I update my benefits?"
+- "Who do I contact for payroll questions?"
+
+### Technical Questions
+- "How do I deploy to production?"
+- "What's our code review process?"
+- "Where do I find the API documentation?"
+
+### Onboarding
+- "What should I do in my first week?"
+- "What tools do I need to set up?"
+- "Who's my onboarding buddy?"
+
+---
+
+## Next Steps
+
+- Add more documents as needed
+- Train your team on using the bot
+- Gather feedback and iterate
+- Consider adding to your company intranet
+- Set up regular content reviews
+
+---
+
+## See Also
+
+- [Documentation Bot Example](/docs/examples/documentation-bot) - Technical documentation focus
+- [Support Bot Example](/docs/examples/support-bot) - Customer support focus
+- [API Integration](/docs/integrations) - Integrate into your tools

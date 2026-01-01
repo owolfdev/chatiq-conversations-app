@@ -1,0 +1,139 @@
+export const metadata = {
+  title: "Security Overview",
+  description:
+    "Team Chat Code security practices covering multi-tenancy isolation, encryption, and compliance roadmap.",
+};
+
+# Security Overview
+
+**Version:** 1.0 &nbsp; | &nbsp; **Last updated:** November 11, 2025
+
+Team Chat Code provides infrastructure and platform services that enable organizations to build multi-tenant AI chatbots. This document summarizes our security practices and design principles. **This is an overview, not a guarantee of security outcomes.**
+
+## 1. Architecture Security
+
+### 1.1 Multi-Tenancy Isolation
+
+Our platform is designed with tenant isolation as a core principle:
+
+- Every record carries a `team_id` and is protected by Row Level Security (RLS) policies in Supabase
+- Bots, documents, chunks, and embeddings are scoped to `team_id`; our query design aims to prevent cross-team access
+- API calls resolve user → profile → team context on the server—never on the client
+- We implement access controls and validation to enforce tenant boundaries
+
+**Note:** While we implement multiple layers of isolation, no system is 100% secure. Customers should not rely solely on platform controls for sensitive data protection.
+
+### 1.2 Encryption & Secrets
+
+- **In transit:** We aim to enforce TLS 1.2+ for all HTTP and database connections
+- **At rest:** Data stored in Supabase Postgres and Storage benefits from infrastructure-level encryption (AES-256 where supported by Supabase)
+- **Secrets management:** API keys and sensitive configuration stored in Vercel/Supabase environment variables, with rotation procedures in place
+
+**Note:** Encryption at rest depends on infrastructure provider capabilities. Customers should verify current encryption status for their data residency requirements.
+
+## 2. Data Handling
+
+### 2.1 Document Ingestion
+
+- **Supported formats:** PDF, DOCX, Markdown, TXT, HTML (whitelisted and sanitized)
+- **Content moderation:** Uploaded text may be screened using OpenAI Moderation API; flagged files may be quarantined and excluded from embeddings
+- **PII filtering:** Optional regex filtering for PII (emails, card numbers, SSNs) may be available
+
+**Customer responsibility:** Customers are responsible for ensuring uploaded content complies with applicable laws and does not contain sensitive data requiring special handling.
+
+### 2.2 Storage & Embeddings
+
+- Files stored in Supabase Storage under `/teams/{team_id}/docs/{uuid}` paths
+- Embeddings stored in Postgres pgvector, partitioned by `team_id` and `collection_id`
+- Vectors contain semantic representations; we aim to avoid storing raw secrets or PII in vectors
+
+### 2.3 Retention
+
+- Customer content retained while the subscription is active
+- Deleted documents and embeddings are targeted for hard-deletion within 30 days; actual deletion timing may vary
+- Audit logs retained for approximately 90 days for security analysis
+
+## 3. Application Security
+
+### 3.1 Authentication & Access Control
+
+- **Authentication:** Supabase Auth (email links, OAuth). JWTs validated on requests
+- **Access controls:** Admin actions may require server-side validation and re-authentication
+- **Bot visibility:** Bots respect visibility flags: _private_ (team-only) or _public_ (read-only sharing)
+
+### 3.2 Rate Limiting & APIs
+
+- Rate limiting implemented per team and per IP address to mitigate abuse
+- API keys hashed with bcrypt, scoped to `team_id`, stored with encryption where supported
+- Exponential back-off and suspension procedures for detected abuse
+
+### 3.3 Audit & Monitoring
+
+- Create/update/delete actions logged to `audit_log` tables
+- Error and access logs streamed to logging services (Vercel Logs, Supabase Logs)
+- Monitoring for suspicious patterns (e.g., excessive uploads) with alerting where configured
+
+## 4. AI & Prompt Security
+
+- **Moderation:** Prompts and uploads may be screened with OpenAI Moderation API before reaching model APIs
+- **Context handling:** Retrieved context is intended to be ephemeral for individual requests; we aim not to use prompts or chunks for model training by default
+- **Model providers:** We use vetted providers (OpenAI, Anthropic) accessed over TLS endpoints
+
+**Note:** Model provider behavior, availability, and data usage policies are outside our control. Customers should review provider terms and configure settings accordingly.
+
+## 5. Infrastructure
+
+- **Hosting:** Services hosted on Vercel and Supabase (both report SOC 2 Type II certification)
+- **Dependencies:** We aim to perform regular dependency updates and vulnerability scanning
+- **Application security:** We implement security headers (CSP, XSS, CSRF protections) where applicable
+- **Backups:** Backup procedures in place; encryption status depends on infrastructure provider
+
+**Note:** Infrastructure security depends on third-party providers. We rely on their certifications and security practices but do not control their operations.
+
+## 6. Compliance & Roadmap
+
+- **Data protection:** We aim to align our data handling practices with GDPR/PDPA principles
+- **Terms compliance:** Our Terms of Service prohibit illegal, copyrighted, or sensitive data uploads
+- **DPA availability:** Data Processing Addendum (DPA) available for enterprise customers upon request
+- **SOC 2:** SOC 2 readiness assessment planned for Q3 2025 (roadmap item, not current status)
+- **Future enhancements:** BYOK encryption and real-time anomaly detection are under consideration
+
+## 7. Incident Response
+
+- **Monitoring:** Incident channels monitored by our engineering team
+- **Response process:** We aim to follow a standard process: detection → triage → containment → customer notification (target: within 72 hours where feasible)
+- **Documentation:** Post-mortems documented; mitigation tasks tracked to closure
+
+**Note:** Response times and procedures may vary based on incident severity and resource availability.
+
+## 8. Vulnerability Reporting
+
+We encourage responsible disclosure of security vulnerabilities. Report issues to [security@teamchatcode.com](mailto:security@teamchatcode.com). Please include:
+
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact assessment
+- Your contact information
+
+We aim to acknowledge reports within 48 hours and provide updates on remediation progress.
+
+## 9. Customer Responsibilities
+
+Customers are responsible for:
+
+- Configuring bots, prompts, and settings appropriately for their use case
+- Implementing appropriate disclosures and disclaimers for end users
+- Ensuring Customer Content complies with applicable laws and regulations
+- Managing access controls and user permissions within their teams
+- Monitoring and responding to security incidents affecting their accounts
+
+## 10. Limitations & Disclaimers
+
+- **No absolute security:** No system is 100% secure. We implement security measures but cannot guarantee prevention of all security incidents
+- **Third-party dependencies:** Our security posture depends on infrastructure providers (Vercel, Supabase) and AI model providers (OpenAI, Anthropic). Their security practices and availability are outside our direct control
+- **Customer configuration:** Security outcomes depend in part on Customer's configuration choices, content, and use of the Services
+- **Evolving threats:** Security practices evolve in response to new threats. This document reflects our current practices and may be updated
+
+## Need More Details?
+
+For security questionnaires, enterprise inquiries, or DPA requests, contact [security@teamchatcode.com](mailto:security@teamchatcode.com) or [legal@teamchatcode.com](mailto:legal@teamchatcode.com).

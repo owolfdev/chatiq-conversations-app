@@ -1,0 +1,304 @@
+export const metadata = {
+  title: "Examples & Templates",
+  description: "Real-world examples, templates, and use cases for ChatIQ chatbots.",
+  tags: ["examples", "templates", "use-cases"],
+};
+
+# Examples & Templates
+
+Explore real-world examples, templates, and use cases to inspire your ChatIQ chatbot implementation.
+
+---
+
+## Use Case Examples
+
+### Customer Support Bot
+
+Create a support bot that answers customer questions based on your documentation.
+
+**Best For:**
+- SaaS companies
+- E-commerce stores
+- Service businesses
+
+**Features:**
+- FAQ knowledge base
+- Product documentation
+- Troubleshooting guides
+- Policy information
+
+[View Example →](/docs/examples/support-bot)
+
+---
+
+### Product Assistant
+
+Help customers discover and understand your products.
+
+**Best For:**
+- Product companies
+- Marketplaces
+- Retail businesses
+
+**Features:**
+- Product specifications
+- Comparison guides
+- Usage instructions
+- Recommendations
+
+[View Example →](/docs/examples/product-assistant)
+
+---
+
+### Documentation Bot
+
+Answer technical questions about your API, SDK, or platform.
+
+**Best For:**
+- Developer tools
+- APIs and SDKs
+- Technical platforms
+
+**Features:**
+- API documentation
+- Code examples
+- Integration guides
+- Troubleshooting
+
+[View Example →](/docs/examples/documentation-bot)
+
+---
+
+### Internal Knowledge Base
+
+Create an internal assistant for your team.
+
+**Best For:**
+- Companies with internal docs
+- Remote teams
+- Onboarding new employees
+
+**Features:**
+- Company policies
+- Process documentation
+- Team knowledge
+- Training materials
+
+[View Example →](/docs/examples/internal-kb)
+
+---
+
+## Quick Templates
+
+### Template 1: Simple FAQ Bot
+
+**System Prompt:**
+```
+You are a helpful FAQ assistant. Answer questions based on the provided documentation. Be concise and friendly. If you don't know the answer, suggest contacting support.
+```
+
+**Documents Needed:**
+- FAQ document
+- Basic product information
+
+**Setup Time:** 5 minutes
+
+---
+
+### Template 2: Technical Support Bot
+
+**System Prompt:**
+```
+You are a technical support specialist. Help users troubleshoot issues based on the provided documentation. Be methodical and clear. Always ask for specific error messages when relevant.
+```
+
+**Documents Needed:**
+- Troubleshooting guide
+- Error code reference
+- Common issues documentation
+
+**Setup Time:** 10 minutes
+
+---
+
+### Template 3: Sales Assistant
+
+**System Prompt:**
+```
+You are a sales assistant. Help potential customers understand our products and services. Be enthusiastic but honest. Guide them toward the best solution for their needs.
+```
+
+**Documents Needed:**
+- Product catalog
+- Pricing information
+- Feature comparisons
+
+**Setup Time:** 15 minutes
+
+---
+
+## Code Examples
+
+### Example 1: Basic Chat Integration
+
+```javascript
+// Simple chat widget
+async function sendMessage(message) {
+  const response = await fetch('/api/chatbot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  return response.json();
+}
+```
+
+[Full Example →](/docs/examples/code-basic)
+
+---
+
+### Example 2: Streaming Chat
+
+```javascript
+// Streaming chat with real-time updates
+async function streamChat(message) {
+  const response = await fetch('/api/chatbot', {
+    method: 'POST',
+    body: JSON.stringify({ message, stream: true }),
+  });
+  
+  const reader = response.body.getReader();
+  // Process stream...
+}
+```
+
+[Full Example →](/docs/examples/code-streaming)
+
+---
+
+### Example 3: React Chat Component
+
+```typescript
+// React chat component
+function ChatWidget() {
+  const { messages, sendMessage } = useChatIQ();
+  // Component implementation...
+}
+```
+
+[Full Example →](/docs/examples/code-react)
+
+---
+
+## Industry-Specific Examples
+
+### E-commerce
+
+- Product recommendations
+- Order tracking
+- Return policies
+- Shipping information
+
+### Healthcare
+
+- Appointment scheduling
+- FAQ about services
+- Insurance information
+- General health questions
+
+### Education
+
+- Course information
+- Enrollment assistance
+- Academic policies
+- Student resources
+
+### Real Estate
+
+- Property listings
+- Neighborhood information
+- Application process
+- Pricing and availability
+
+---
+
+## Best Practices by Use Case
+
+### Support Bots
+
+✅ **Do:**
+- Include troubleshooting steps
+- Reference specific error codes
+- Provide escalation paths
+- Keep documentation updated
+
+❌ **Don't:**
+- Make promises you can't keep
+- Provide medical/legal advice
+- Share sensitive information
+
+---
+
+### Sales Bots
+
+✅ **Do:**
+- Highlight key features
+- Provide clear pricing
+- Offer comparisons
+- Guide to next steps
+
+❌ **Don't:**
+- Be pushy or aggressive
+- Make false claims
+- Skip important disclaimers
+
+---
+
+### Documentation Bots
+
+✅ **Do:**
+- Include code examples
+- Reference specific versions
+- Link to external resources
+- Keep technical accuracy
+
+❌ **Don't:**
+- Assume user knowledge level
+- Skip error handling examples
+- Use outdated information
+
+---
+
+## Getting Started with Examples
+
+1. **Choose a template** that matches your use case
+2. **Customize the system prompt** for your brand voice
+3. **Add your documents** with relevant knowledge
+4. **Test thoroughly** with real questions
+5. **Iterate** based on user feedback
+
+---
+
+## Share Your Examples
+
+Built something cool? We'd love to feature it!
+
+- Share on [Twitter/X](https://twitter.com/chatiq)
+- Submit a pull request to our examples repo
+- Email us at examples@chatiq.io
+
+---
+
+## Next Steps
+
+- [Quick Start Guide](/docs/quick-start) - Get started in minutes
+- [API Reference](/docs/api) - Full API documentation
+- [Integrations](/docs/integrations) - Platform-specific guides
+
+---
+
+## Need Help?
+
+- **Documentation**: Browse all guides
+- **Support**: support@chatiq.io
+- **Community**: Join our Discord (coming soon)

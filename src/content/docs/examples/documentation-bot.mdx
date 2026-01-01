@@ -1,0 +1,281 @@
+export const metadata = {
+  title: "Documentation Bot Example",
+  description: "Create a technical documentation chatbot that helps developers understand your API, SDK, or platform.",
+  tags: ["examples", "documentation", "developer", "api", "documentation bot"],
+};
+
+# Documentation Bot Example
+
+Build a technical documentation chatbot that helps developers understand your API, SDK, or platform by answering questions based on your technical documentation.
+
+---
+
+## Overview
+
+A documentation bot helps developers:
+- Find API endpoints and methods
+- Understand code examples
+- Troubleshoot integration issues
+- Learn best practices
+
+**Best for:** APIs, SDKs, developer tools, technical platforms
+
+---
+
+## Step 1: Create Your Bot
+
+**Name:** `API Documentation Assistant` or `Developer Docs Bot`
+
+**Description:** `Helps developers understand our API and integration guides`
+
+**System Prompt:**
+```
+You are a technical documentation assistant. Your goal is to help 
+developers understand our API, SDK, and platform.
+
+Guidelines:
+- Provide accurate technical information
+- Include code examples when relevant
+- Reference specific API versions
+- Explain error messages clearly
+- Suggest troubleshooting steps
+- Link to relevant documentation sections when possible
+- Use technical terminology appropriately
+- Be precise and clear
+```
+
+---
+
+## Step 2: Add Documentation
+
+### Document 1: API Reference
+
+**Title:** `API Reference`
+
+**Content:**
+```
+# API Reference
+
+## Authentication
+
+All API requests require authentication using an API key:
+
+```bash
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+## Endpoints
+
+### POST /api/chat
+
+Send a message to a chatbot.
+
+**Request:**
+```json
+{
+  "message": "Hello",
+  "bot_slug": "my-bot",
+  "stream": false
+}
+```
+
+**Response:**
+```json
+{
+  "response": "Hello! How can I help?",
+  "conversationId": "uuid-here"
+}
+```
+
+### GET /api/v1/documents
+
+List all documents.
+
+**Headers:**
+- Authorization: Bearer {api_key}
+
+**Response:**
+```json
+{
+  "documents": [...]
+}
+```
+```
+
+**Tags:** `api, reference, endpoints`
+
+---
+
+### Document 2: Code Examples
+
+**Title:** `Code Examples`
+
+**Content:**
+```
+# Code Examples
+
+## JavaScript/Node.js
+
+```javascript
+const response = await fetch('https://chatiq.io/api/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer sk_live_your_api_key',
+  },
+  body: JSON.stringify({
+    message: 'Hello',
+    bot_slug: 'my-bot',
+  }),
+});
+
+const data = await response.json();
+console.log(data.response);
+```
+
+## Python
+
+```python
+import requests
+
+response = requests.post(
+    'https://chatiq.io/api/chat',
+    headers={
+        'Authorization': 'Bearer sk_live_your_api_key',
+    },
+    json={
+        'message': 'Hello',
+        'bot_slug': 'my-bot',
+    }
+)
+
+data = response.json()
+print(data['response'])
+```
+
+## cURL
+
+```bash
+curl -X POST https://chatiq.io/api/chat \
+  -H "Authorization: Bearer sk_live_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello",
+    "bot_slug": "my-bot"
+  }'
+```
+```
+
+**Tags:** `examples, code, sdk`
+
+---
+
+### Document 3: Error Codes
+
+**Title:** `Error Codes Reference`
+
+**Content:**
+```
+# Error Codes
+
+## 401 Unauthorized
+
+**Code:** `UNAUTHORIZED`
+
+**Message:** Invalid or missing API key
+
+**Solution:**
+- Check that your API key is correct
+- Ensure the Authorization header is formatted correctly
+- Verify the API key is active in your dashboard
+
+## 429 Too Many Requests
+
+**Code:** `RATE_LIMIT`
+
+**Message:** Rate limit exceeded
+
+**Solution:**
+- Check your plan's rate limits
+- Implement exponential backoff
+- Consider upgrading your plan
+
+## 400 Bad Request
+
+**Code:** `VALIDATION_ERROR`
+
+**Message:** Invalid request parameters
+
+**Solution:**
+- Verify all required fields are present
+- Check data types match the API specification
+- Review the request body format
+```
+```
+
+**Tags:** `errors, troubleshooting, api`
+
+---
+
+## Step 3: Test Technical Questions
+
+Try these questions:
+- "How do I authenticate API requests?"
+- "Show me an example of sending a chat message"
+- "What does error code 401 mean?"
+- "How do I handle rate limits?"
+- "What's the endpoint for listing documents?"
+
+---
+
+## Advanced: Version-Specific Answers
+
+Include version information in your documents:
+
+```
+# API v1 Reference
+
+## Authentication (v1.0+)
+
+All requests require API key authentication...
+
+## Breaking Changes in v2.0
+
+- Endpoint URLs changed from /api/v1/ to /api/v2/
+- Response format updated
+- New required fields added
+```
+
+---
+
+## Best Practices
+
+- **Keep docs current** - Update when APIs change
+- **Include code examples** - Show, don't just tell
+- **Version your docs** - Reference specific API versions
+- **Explain errors clearly** - Help developers debug
+- **Link to resources** - Point to external docs when relevant
+
+---
+
+## Integration Example
+
+```javascript
+// Developer documentation widget
+async function askDocs(question) {
+  const response = await fetch('/api/docs-bot', {
+    method: 'POST',
+    body: JSON.stringify({
+      message: question,
+    }),
+  });
+  return response.json();
+}
+```
+
+---
+
+## Next Steps
+
+- [Support Bot Example](/docs/examples/support-bot)
+- [API Reference](/docs/api) - Full API documentation

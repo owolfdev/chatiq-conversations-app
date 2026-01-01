@@ -1,0 +1,169 @@
+export const metadata = {
+  title: "Privacy Policy",
+  description:
+    "Privacy Policy outlining how Team Chat Code collects, uses, and safeguards personal data.",
+};
+
+# Privacy Policy
+
+**Effective date:** November 11, 2025
+
+This Privacy Policy explains how Team Chat Code ("we," "us," or "our") collects, uses, and protects personal data in connection with our platform services.
+
+## 1. Our Role
+
+Team Chat Code provides infrastructure and platform services that enable our customers ("Customers") to build and deploy AI-powered chatbots. For personal data processed through our Services:
+
+- **Customers are data controllers** — they determine what data to collect, how it's used, and what disclosures are made to end users
+- **We are data processors** — we process personal data on behalf of Customers to provide the Services
+
+This Privacy Policy describes our practices as both a controller (for account and billing data) and as a processor (for Customer Content and end-user interactions).
+
+## 2. Information We Collect
+
+### 2.1 Account & Billing Data (Controller Capacity)
+
+- **Account information:** name, email address, authentication tokens, team membership, subscription details
+- **Billing information:** payment method details (processed by Stripe, not stored by us), billing address, transaction history
+- **Usage analytics:** feature usage, device type, IP address (for security, rate limiting, and service improvement)
+
+### 2.2 Customer Content (Processor Capacity)
+
+- **Documents:** files, text, and content uploaded by Customers to the platform
+- **Bot configurations:** system prompts, settings, and customization data
+- **Chat logs:** conversations between end users and Customer bots, stored per Customer's configuration
+- **API usage data:** request logs, response times, and usage metrics
+
+### 2.3 End User Data (Processor Capacity)
+
+When end users interact with Customer bots, we may process:
+- **Query content:** messages and prompts sent to Customer bots
+- **Session data:** conversation history, IP addresses, user agents (as configured by Customer)
+- **Interaction metadata:** timestamps, bot identifiers, response data
+
+**Note:** Customers control what data is collected from end users and are responsible for providing appropriate privacy notices and obtaining necessary consents.
+
+## 3. How We Use Data
+
+### 3.1 Service Delivery (Lawful Basis: Contract Performance)
+
+- Process Customer Content to generate embeddings and enable chatbot functionality
+- Provide AI model services through third-party providers (OpenAI, Anthropic)
+- Store and retrieve data to support chatbot operations
+- Deliver API services and platform infrastructure
+
+### 3.2 Service Improvement (Lawful Basis: Legitimate Interest)
+
+- Monitor platform performance, errors, and usage patterns
+- Generate anonymized, aggregated analytics about feature adoption
+- Improve service reliability, security, and functionality
+- Conduct security monitoring and abuse prevention
+
+### 3.3 Legal & Compliance (Lawful Basis: Legal Obligation)
+
+- Respond to valid legal requests and court orders
+- Comply with applicable laws and regulations
+- Enforce our Terms of Service and prevent abuse
+
+### 3.4 Customer Support (Lawful Basis: Contract Performance)
+
+- Respond to customer inquiries and support requests
+- Provide technical assistance and troubleshooting
+
+## 4. AI Model Training
+
+**By default, we do not use Customer Content or end-user interactions to train AI models.** Customer Content and chat logs are processed solely to provide the Services (e.g., generating embeddings, retrieving context, producing responses). We do not use this data to train, fine-tune, or improve third-party AI models unless Customer explicitly opts in to such use.
+
+**Third-party model providers** (e.g., OpenAI, Anthropic) may have their own data usage policies. Customers should review these policies and configure model settings accordingly (e.g., using API settings that opt out of training, where available).
+
+## 5. Data Sharing & Subprocessors
+
+We do not sell personal information to third parties. We share data only as necessary to provide the Services:
+
+### 5.1 Subprocessors
+
+We use the following subprocessors to operate the Services:
+
+- **OpenAI** (United States) — AI model services for chat completions and embeddings
+- **Anthropic** (United States) — AI model services (where Customer selects Anthropic models)
+- **Supabase** (United States, EU options available) — database, storage, authentication, and vector search
+- **Vercel** (United States, global CDN) — hosting, API infrastructure, and content delivery
+- **Stripe** (United States) — payment processing (for billing data only)
+
+We may update our subprocessor list from time to time. We ensure subprocessors are bound by data protection obligations consistent with this Privacy Policy.
+
+### 5.2 Legal Disclosures
+
+We may disclose information if required by law, court order, or valid legal process, or to protect our rights, property, or safety, or that of our users or others.
+
+## 6. Data Retention & Deletion
+
+### 6.1 Retention Periods
+
+- **Customer Content:** Retained while Customer's subscription is active. Deleted documents and embeddings are removed within 30 days of deletion request.
+- **Chat logs:** Retained per Customer's configuration (default: 90 days). Customers may configure shorter retention or disable logging.
+- **Account data:** Retained while account is active. Deleted within 30 days of account cancellation unless otherwise required by law.
+- **Audit logs:** Retained for 90 days for security and compliance purposes.
+
+### 6.2 Deletion Requests
+
+- **Customers:** May delete Customer Content, chat logs, or their entire account at any time through the dashboard or by contacting [privacy@teamchatcode.com](mailto:privacy@teamchatcode.com).
+- **End Users:** Should direct deletion requests to the Customer who controls the bot. We will assist Customers in fulfilling valid end-user requests.
+
+## 7. Data Subject Rights
+
+### 7.1 Customer Rights (Controller Data)
+
+Customers have the right to:
+- Access and export their personal data
+- Request corrections or updates
+- Request deletion (subject to legal obligations)
+- Object to processing for marketing or analytics
+- Withdraw consent where processing is based on consent
+
+### 7.2 End User Rights (Processor Data)
+
+End users should contact the Customer who controls the bot to exercise their rights (access, deletion, portability, etc.). We will assist Customers in fulfilling valid requests in accordance with our data processing obligations.
+
+## 8. International Transfers
+
+Data may be processed in the United States or other regions where our infrastructure partners operate. We implement appropriate safeguards for cross-border transfers, including:
+
+- Standard contractual clauses where applicable
+- Reliance on subprocessors' certifications (e.g., SOC 2, GDPR compliance)
+- Data processing agreements with Customers
+
+## 9. Security Measures
+
+We implement technical and organizational measures designed to protect personal data, including:
+
+- Encryption in transit (TLS 1.2+) and at rest (where supported by infrastructure providers)
+- Role-based access controls and Row Level Security (RLS) policies
+- Regular security assessments and vulnerability scanning
+- Audit logging and monitoring
+
+See our [Security page](/legal/security) for more details. Note that no security measure is 100% effective, and we cannot guarantee absolute security.
+
+## 10. Cookies & Tracking
+
+- **Essential cookies:** Required for authentication and session management
+- **Analytics cookies:** Optional, used to understand usage patterns (can be opted out)
+- **Third-party cookies:** Used by subprocessors (e.g., Stripe for payment processing)
+
+Customers are responsible for disclosing and managing cookies and tracking technologies used by their bots, as applicable.
+
+## 11. Children's Privacy
+
+Our Services are not intended for children under 13 (or the applicable age of consent in your jurisdiction). We do not knowingly collect personal data from children. Customers are responsible for ensuring their bots comply with applicable children's privacy laws.
+
+## 12. Changes to this Policy
+
+We may update this Privacy Policy periodically to reflect changes in our practices or legal requirements. Material changes will be notified via email or in-app notice. Continued use of the Services after notice constitutes acceptance of the updated policy.
+
+## 13. Contact
+
+**Privacy inquiries:** [privacy@teamchatcode.com](mailto:privacy@teamchatcode.com)
+
+**Data access or deletion requests:** Include "Privacy Request" in the subject line and specify the type of request.
+
+**Data Processing Addendum (DPA):** Enterprise customers may request a DPA. Contact [legal@teamchatcode.com](mailto:legal@teamchatcode.com).

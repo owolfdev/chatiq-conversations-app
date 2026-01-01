@@ -1,0 +1,468 @@
+export const metadata = {
+  title: "Documents API",
+  description:
+    "Complete reference for managing documents and tracking embedding status via the ChatIQ API.",
+  tags: [
+    "api",
+    "rest",
+    "rest-api",
+    "rest api",
+    "documents",
+    "embeddings",
+    "reference",
+  ],
+};
+
+# Documents API
+
+The Documents API allows you to manage knowledge base documents and track their embedding processing status programmatically.
+
+---
+
+## Base Endpoint
+
+All document endpoints are under:
+
+```
+https://chatiq.io/api/v1/documents
+```
+
+---
+
+## List Documents
+
+### GET `/api/v1/documents`
+
+Retrieve all documents accessible by your API key.
+
+#### Request
+
+```http
+GET /api/v1/documents
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Response
+
+```json
+{
+  "documents": [
+    {
+      "id": "uuid",
+      "title": "Product Documentation",
+      "tags": ["product", "docs"],
+      "created_at": "2025-11-20T10:00:00Z",
+      "is_global": false,
+      "canonical_url": "https://example.com/docs"
+    }
+  ]
+}
+```
+
+---
+
+## Create Document
+
+### POST `/api/v1/documents`
+
+Create a new document. Embedding processing will start automatically.
+
+#### Request
+
+```http
+POST /api/v1/documents
+Authorization: Bearer sk_live_your_api_key_here
+Content-Type: application/json
+
+{
+  "title": "Product Information",
+  "content": "Your document content here...",
+  "tags": ["product", "info"]
+}
+```
+
+#### Request Body
+
+| Field     | Type     | Required | Description                    |
+| --------- | -------- | -------- | ------------------------------ |
+| `title`   | string   | Yes      | Document title                 |
+| `content` | string   | Yes      | Document content (text)        |
+| `tags`    | string[] | No       | Array of tags for organization |
+
+#### Response
+
+```json
+{
+  "document": {
+    "id": "uuid",
+    "title": "Product Information",
+    "tags": ["product", "info"],
+    "created_at": "2025-11-20T10:00:00Z",
+    "is_global": false,
+    "canonical_url": null
+  }
+}
+```
+
+**Note:** Embedding processing starts automatically. Use the status endpoint to track progress.
+
+---
+
+## Get Document
+
+### GET `/api/v1/documents/:id`
+
+Retrieve a specific document by ID.
+
+#### Request
+
+```http
+GET /api/v1/documents/uuid-here
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Response
+
+```json
+{
+  "document": {
+    "id": "uuid",
+    "title": "Product Information",
+    "content": "Full document content...",
+    "tags": ["product", "info"],
+    "created_at": "2025-11-20T10:00:00Z",
+    "is_global": false,
+    "canonical_url": null
+  }
+}
+```
+
+---
+
+## Update Document
+
+### PUT `/api/v1/documents/:id`
+
+Update an existing document. If content changes, embeddings will be regenerated.
+
+#### Request
+
+```http
+PUT /api/v1/documents/uuid-here
+Authorization: Bearer sk_live_your_api_key_here
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "content": "Updated content...",
+  "tags": ["updated", "tags"]
+}
+```
+
+#### Request Body
+
+All fields are optional. Only include fields you want to update.
+
+| Field     | Type     | Required | Description          |
+| --------- | -------- | -------- | -------------------- |
+| `title`   | string   | No       | New document title   |
+| `content` | string   | No       | New document content |
+| `tags`    | string[] | No       | New tags array       |
+
+#### Response
+
+```json
+{
+  "document": {
+    "id": "uuid",
+    "title": "Updated Title",
+    "content": "Updated content...",
+    "tags": ["updated", "tags"],
+    "created_at": "2025-11-20T10:00:00Z",
+    "is_global": false,
+    "canonical_url": null
+  }
+}
+```
+
+**Note:** If `content` is updated, embedding processing will restart automatically.
+
+---
+
+## Delete Document
+
+### DELETE `/api/v1/documents/:id`
+
+Delete a document and all associated chunks and embeddings.
+
+#### Request
+
+```http
+DELETE /api/v1/documents/uuid-here
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Response
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+## Get Embedding Status
+
+### GET `/api/v1/documents/:id/embeddings/status`
+
+Check the embedding processing status for a document.
+
+#### Request
+
+```http
+GET /api/v1/documents/uuid-here/embeddings/status
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Response
+
+```json
+{
+  "document_id": "uuid",
+  "status": "processing",
+  "progress": {
+    "total": 100,
+    "pending": 5,
+    "processing": 2,
+    "completed": 90,
+    "failed": 3
+  },
+  "percentage": 90,
+  "failed_jobs": [
+    {
+      "error": "OpenAI API error: Rate limit exceeded",
+      "created_at": "2025-11-20T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### Status Values
+
+- `not_started` - No chunks created yet
+- `pending` - Jobs queued, waiting to process
+- `processing` - Jobs currently being processed
+- `completed` - All jobs completed successfully
+- `failed` - All jobs failed (no pending/processing jobs)
+
+#### Polling Strategy
+
+For real-time status updates, poll this endpoint:
+
+```javascript
+async function waitForEmbedding(documentId, apiKey, interval = 2000) {
+  while (true) {
+    const response = await fetch(
+      `https://chatiq.io/api/v1/documents/${documentId}/embeddings/status`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      }
+    );
+
+    const status = await response.json();
+
+    console.log(`Progress: ${status.percentage}%`);
+
+    if (status.status === "completed") {
+      return status;
+    }
+
+    if (status.status === "failed" && status.progress.pending === 0) {
+      throw new Error("Embedding failed");
+    }
+
+    // Wait before next poll
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
+```
+
+---
+
+## List Embedding Jobs
+
+### GET `/api/v1/embeddings/jobs`
+
+List embedding jobs with optional filtering.
+
+#### Request
+
+```http
+GET /api/v1/embeddings/jobs?document_id=uuid&status=failed&limit=50&offset=0
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Query Parameters
+
+| Parameter     | Type   | Required | Description                                                      |
+| ------------- | ------ | -------- | ---------------------------------------------------------------- |
+| `document_id` | string | No       | Filter by document ID                                            |
+| `status`      | string | No       | Filter by status: `pending`, `processing`, `completed`, `failed` |
+| `limit`       | number | No       | Number of results (default: 50, max: 100)                        |
+| `offset`      | number | No       | Pagination offset (default: 0)                                   |
+
+#### Response
+
+```json
+{
+  "jobs": [
+    {
+      "id": "uuid",
+      "document_id": "uuid",
+      "status": "completed",
+      "attempts": 1,
+      "error": null,
+      "created_at": "2025-11-20T10:00:00Z",
+      "updated_at": "2025-11-20T10:01:00Z",
+      "locked_at": null
+    }
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "total": 1
+  }
+}
+```
+
+---
+
+## Retry Failed Job
+
+### POST `/api/v1/embeddings/jobs/:id/retry`
+
+Retry a failed embedding job by resetting it to pending status.
+
+#### Request
+
+```http
+POST /api/v1/embeddings/jobs/uuid-here/retry
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "job": {
+    "id": "uuid",
+    "status": "pending"
+  }
+}
+```
+
+**Note:** Only jobs with status `failed` can be retried.
+
+---
+
+## Complete Example: Upload and Track
+
+```javascript
+async function uploadDocumentWithTracking(title, content, apiKey) {
+  // 1. Create document
+  const createResponse = await fetch("https://chatiq.io/api/v1/documents", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ title, content }),
+  });
+
+  const { document } = await createResponse.json();
+  console.log(`Document created: ${document.id}`);
+
+  // 2. Poll for embedding status
+  while (true) {
+    const statusResponse = await fetch(
+      `https://chatiq.io/api/v1/documents/${document.id}/embeddings/status`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      }
+    );
+
+    const status = await statusResponse.json();
+    console.log(
+      `Progress: ${status.percentage}% (${status.progress.completed}/${status.progress.total})`
+    );
+
+    if (status.status === "completed") {
+      console.log("Document is ready for use!");
+      return document;
+    }
+
+    if (status.status === "failed" && status.progress.pending === 0) {
+      // Retry failed jobs
+      const jobsResponse = await fetch(
+        `https://chatiq.io/api/v1/embeddings/jobs?document_id=${document.id}&status=failed`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      const { jobs } = await jobsResponse.json();
+
+      for (const job of jobs) {
+        await fetch(
+          `https://chatiq.io/api/v1/embeddings/jobs/${job.id}/retry`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          }
+        );
+      }
+
+      console.log(`Retried ${jobs.length} failed jobs`);
+    }
+
+    // Wait 2 seconds before next poll
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+```
+
+---
+
+## Error Codes
+
+| Code               | Status | Description                   |
+| ------------------ | ------ | ----------------------------- |
+| `UNAUTHORIZED`     | 401    | API key missing or invalid    |
+| `NOT_FOUND`        | 404    | Document not found            |
+| `VALIDATION_ERROR` | 400    | Invalid request body          |
+| `DATABASE_ERROR`   | 500    | Database operation failed     |
+| `INVALID_STATUS`   | 400    | Cannot retry job (not failed) |
+
+---
+
+## Rate Limits
+
+Document operations count toward your plan's rate limits. See [Rate Limits](/docs/api#rate-limits) for details.
+
+---
+
+## Next Steps
+
+- See [Getting Started](/docs/api-getting-started) for onboarding
+- See [Complete API Reference](/docs/api) for all endpoints
+- See [Streaming Guide](/docs/api-streaming) for chat streaming

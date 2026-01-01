@@ -1,0 +1,776 @@
+export const metadata = {
+  title: "Next.js Integration Guide",
+  description: "Step-by-step guide to integrating ChatIQ API into your Next.js 16 application.",
+  tags: ["integrations", "nextjs", "next.js", "api", "server"],
+};
+
+# Next.js Integration Guide
+
+This guide will walk you through integrating ChatIQ's API into your Next.js 16 application, from creating an API key to making your first API call.
+
+---
+
+## Step 1: Create an API Key
+
+1. **Log in to your ChatIQ dashboard** at `https://chatiq.io/dashboard`
+
+2. **Navigate to API Keys**
+   - Click on **"API Keys"** in the dashboard sidebar
+   - Or go directly to `https://chatiq.io/dashboard/api-keys`
+
+3. **Create a new API key**
+   - Click the **"Create New Key"** button
+   - Select the bot you want this key to have access to
+   - Give it a descriptive label (e.g., "Production" or "Development")
+   - Click **"Create"**
+
+4. **Copy your API key immediately**
+   - ⚠️ **Important:** You'll only see the full key once. Copy it now and store it securely.
+
+---
+
+## Step 2: Set Up Your Next.js Project
+
+### 2.1 Install Dependencies
+
+No additional dependencies are required! Next.js 16 includes `fetch` by default.
+
+### 2.2 Create Environment Variables
+
+Create a `.env.local` file in your Next.js project root:
+
+```bash
+# .env.local
+CHATIQ_API_KEY=sk_live_your_api_key_here
+CHATIQ_API_URL=https://chatiq.io/api
+CHATIQ_BOT_SLUG=your-bot-slug
+```
+
+**Security Note:** Never commit `.env.local` to version control. Add it to your `.gitignore`.
+
+### 2.3 Type-Safe Environment Variables (Optional but Recommended)
+
+Create `src/lib/env.ts` for type-safe environment variable access:
+
+```typescript
+// src/lib/env.ts
+function getEnvVar(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
+export const env = {
+  CHATIQ_API_KEY: getEnvVar("CHATIQ_API_KEY"),
+  CHATIQ_API_URL: getEnvVar("CHATIQ_API_URL") || "https://chatiq.io/api",
+  CHATIQ_BOT_SLUG: getEnvVar("CHATIQ_BOT_SLUG"),
+} as const;
+```
+
+---
+
+## Step 3: Create API Client Utilities
+
+### 3.1 Create a Chat API Client
+
+Create `src/lib/chatiq-client.ts`:
+
+```typescript
+// src/lib/chatiq-client.ts
+import { env } from "./env";
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  bot_slug: string;
+  stream?: boolean;
+  history?: ChatMessage[];
+  conversation_id?: string | null;
+}
+
+export interface ChatResponse {
+  response: string;
+  conversationId?: string;
+}
+
+export interface ChatError {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+}
+
+/**
+ * Send a chat message to ChatIQ API (JSON mode)
+ */
+export async function sendChatMessage(
+  request: ChatRequest
+): Promise<ChatResponse> {
+  const response = await fetch(`${env.CHATIQ_API_URL}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.CHATIQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      ...request,
+      stream: false, // Use JSON mode
+    }),
+  });
+
+  if (!response.ok) {
+    const error: ChatError = await response.json();
+    throw new Error(error.error?.message || "Failed to send message");
+  }
+
+  return response.json();
+}
+
+/**
+ * Stream a chat message from ChatIQ API
+ * Returns an async generator that yields response chunks
+ */
+export async function* streamChatMessage(
+  request: ChatRequest
+): AsyncGenerator<string, void, unknown> {
+  const response = await fetch(`${env.CHATIQ_API_URL}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.CHATIQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      ...request,
+      stream: true, // Use streaming mode
+    }),
+  });
+
+  if (!response.ok) {
+    const error: ChatError = await response.json();
+    throw new Error(error.error?.message || "Failed to stream message");
+  }
+
+  if (!response.body) {
+    throw new Error("Response body is null");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") return;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              yield content;
+            }
+          } catch {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+```
+
+---
+
+## Step 4: Use in Server Components
+
+### 4.1 Server Component Example
+
+Create `src/app/chat/page.tsx`:
+
+```typescript
+// src/app/chat/page.tsx
+import { sendChatMessage } from "@/lib/chatiq-client";
+import { env } from "@/lib/env";
+import { ChatForm } from "./chat-form";
+
+export default async function ChatPage() {
+  // Example: Send a message from server component
+  async function handleMessage(formData: FormData) {
+    "use server";
+    
+    const message = formData.get("message") as string;
+    
+    if (!message) {
+      return { error: "Message is required" };
+    }
+
+    try {
+      const response = await sendChatMessage({
+        message,
+        bot_slug: env.CHATIQ_BOT_SLUG,
+      });
+
+      return { 
+        success: true, 
+        response: response.response,
+        conversationId: response.conversationId 
+      };
+    } catch (error) {
+      return { 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      };
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-6">Chat with Bot</h1>
+      <ChatForm onSubmit={handleMessage} />
+    </div>
+  );
+}
+```
+
+### 4.2 Server Action Example
+
+Create `src/app/actions/chat.ts`:
+
+```typescript
+// src/app/actions/chat.ts
+"use server";
+
+import { sendChatMessage } from "@/lib/chatiq-client";
+import { env } from "@/lib/env";
+
+export async function sendMessage(message: string, conversationId?: string) {
+  try {
+    const response = await sendChatMessage({
+      message,
+      bot_slug: env.CHATIQ_BOT_SLUG,
+      conversation_id: conversationId || null,
+    });
+
+    return {
+      success: true,
+      response: response.response,
+      conversationId: response.conversationId,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+```
+
+---
+
+## Step 5: Use in Client Components
+
+### 5.1 Client Component with JSON Mode
+
+Create `src/components/chat-client.tsx`:
+
+```typescript
+// src/components/chat-client.tsx
+"use client";
+
+import { useState } from "react";
+import { sendMessage } from "@/app/actions/chat";
+
+export function ChatClient() {
+  const [message, setMessage] = useState("");
+  const [response, setResponse] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || loading) return;
+
+    setLoading(true);
+    setResponse("");
+
+    const result = await sendMessage(message, conversationId || undefined);
+
+    if (result.success) {
+      setResponse(result.response || "");
+      if (result.conversationId) {
+        setConversationId(result.conversationId);
+      }
+      setMessage("");
+    } else {
+      setResponse(`Error: ${result.error}`);
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 px-4 py-2 border rounded"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          disabled={loading || !message.trim()}
+          className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+        >
+          {loading ? "Sending..." : "Send"}
+        </button>
+      </form>
+
+      {response && (
+        <div className="p-4 bg-gray-100 rounded">
+          <p>{response}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### 5.2 Client Component with Streaming
+
+Create `src/components/chat-stream.tsx`:
+
+```typescript
+// src/components/chat-stream.tsx
+"use client";
+
+import { useState } from "react";
+import { streamChatMessage } from "@/lib/chatiq-client";
+import { env } from "@/lib/env";
+
+export function ChatStream() {
+  const [message, setMessage] = useState("");
+  const [response, setResponse] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || loading) return;
+
+    setLoading(true);
+    setResponse("");
+
+    try {
+      // Note: This requires a client-side API route proxy
+      // See Step 6 for the proxy setup
+      const response = await fetch("/api/chat-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              setLoading(false);
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                fullResponse += content;
+                setResponse(fullResponse);
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+    } catch (error) {
+      setResponse(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 px-4 py-2 border rounded"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          disabled={loading || !message.trim()}
+          className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+        >
+          {loading ? "Streaming..." : "Send"}
+        </button>
+      </form>
+
+      {response && (
+        <div className="p-4 bg-gray-100 rounded">
+          <p>{response}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+---
+
+## Step 6: Create API Route Proxy (For Client-Side Streaming)
+
+Since API keys should never be exposed to the client, create a proxy route:
+
+Create `src/app/api/chat-proxy/route.ts`:
+
+```typescript
+// src/app/api/chat-proxy/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { message, conversation_id } = await req.json();
+
+    const response = await fetch(`${env.CHATIQ_API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.CHATIQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        message,
+        bot_slug: env.CHATIQ_BOT_SLUG,
+        stream: true,
+        conversation_id: conversation_id || null,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return NextResponse.json(error, { status: response.status });
+    }
+
+    // Stream the response back to the client
+    return new Response(response.body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+---
+
+## Step 7: Error Handling
+
+Add comprehensive error handling:
+
+```typescript
+// src/lib/chatiq-client.ts (additions)
+
+export class ChatIQError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = "ChatIQError";
+  }
+}
+
+export async function sendChatMessage(
+  request: ChatRequest
+): Promise<ChatResponse> {
+  try {
+    const response = await fetch(`${env.CHATIQ_API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.CHATIQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        ...request,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const error: ChatError = await response.json();
+      throw new ChatIQError(
+        error.error?.code || "UNKNOWN_ERROR",
+        error.error?.message || "Failed to send message",
+        error.error?.details
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof ChatIQError) {
+      throw error;
+    }
+    throw new ChatIQError(
+      "NETWORK_ERROR",
+      error instanceof Error ? error.message : "Network error occurred"
+    );
+  }
+}
+```
+
+---
+
+## Step 8: Conversation Management
+
+Maintain conversation context:
+
+```typescript
+// src/hooks/use-chat.ts
+"use client";
+
+import { useState } from "react";
+import { sendMessage } from "@/app/actions/chat";
+
+export function useChat() {
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [history, setHistory] = useState<
+    Array<{ role: "user" | "assistant"; content: string }>
+  >([]);
+
+  const send = async (message: string) => {
+    const result = await sendMessage(message, conversationId || undefined);
+
+    if (result.success) {
+      // Update conversation ID
+      if (result.conversationId) {
+        setConversationId(result.conversationId);
+      }
+
+      // Update history
+      setHistory((prev) => [
+        ...prev,
+        { role: "user", content: message },
+        { role: "assistant", content: result.response || "" },
+      ]);
+
+      return result;
+    }
+
+    throw new Error(result.error || "Failed to send message");
+  };
+
+  return { send, history, conversationId };
+}
+```
+
+---
+
+## Best Practices
+
+1. **Never expose API keys to the client**
+   - Always use server actions or API routes for API calls
+   - Store keys in `.env.local` (server-side only)
+
+2. **Handle rate limits**
+   - Implement exponential backoff on 429 errors
+   - Monitor your usage in the ChatIQ dashboard
+
+3. **Use conversation IDs**
+   - Maintain conversation context for better responses
+   - Store conversation IDs in session storage or database
+
+4. **Error handling**
+   - Always wrap API calls in try-catch blocks
+   - Provide user-friendly error messages
+
+5. **Type safety**
+   - Use TypeScript for all API interactions
+   - Define interfaces for requests and responses
+
+---
+
+## Complete Example: Chat Page
+
+Here's a complete example combining everything:
+
+```typescript
+// src/app/chat/page.tsx
+import { ChatInterface } from "@/components/chat-interface";
+
+export default function ChatPage() {
+  return (
+    <div className="container mx-auto p-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">Chat with AI Assistant</h1>
+      <ChatInterface />
+    </div>
+  );
+}
+```
+
+```typescript
+// src/components/chat-interface.tsx
+"use client";
+
+import { useState } from "react";
+import { sendMessage } from "@/app/actions/chat";
+
+export function ChatInterface() {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<
+    Array<{ role: "user" | "assistant"; content: string }>
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMessage = input;
+    setInput("");
+    setLoading(true);
+
+    // Add user message immediately
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+
+    try {
+      const result = await sendMessage(userMessage, conversationId || undefined);
+
+      if (result.success) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: result.response || "" },
+        ]);
+
+        if (result.conversationId) {
+          setConversationId(result.conversationId);
+        }
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error: ${result.error}` },
+        ]);
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="border rounded-lg p-4 h-96 overflow-y-auto space-y-4">
+        {messages.length === 0 ? (
+          <p className="text-gray-500 text-center">Start a conversation...</p>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-900"
+                }`}
+              >
+                <p>{msg.content}</p>
+              </div>
+            </div>
+          ))
+        )}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-200 p-3 rounded-lg">
+              <p className="text-gray-500">Thinking...</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 px-4 py-2 border rounded-lg"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Sending..." : "Send"}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+---
+
+## Next Steps
+
+- Check out the [API Reference](/docs/api) for detailed endpoint documentation
+- Explore [other integrations](/docs/integrations) for different frameworks
+- Visit your [ChatIQ dashboard](https://chatiq.io/dashboard) to manage bots and monitor usage

@@ -1,0 +1,37 @@
+{
+  "name": "subscription checkout with metadata",
+  "objects": {
+    "customer": {
+      "email": "oliverwolfson@gmail.com",
+      "name": "ChatIQ | Oliver Wolfson",
+      "metadata": {
+        "app": "chatiq",
+        "team_id": "6eb8602b-b5d7-4544-94b1-429443242378",
+        "supabase_user_id": "cc875ce1-5d13-4614-8e88-4b1a5742fb5f"
+      }
+    },
+    "checkout_session": {
+      "customer": "{{customer.id}}",
+      "payment_method_types": ["card"],
+      "mode": "subscription",
+      "success_url": "https://example.com/success",
+      "cancel_url": "https://example.com/cancel",
+      "line_items": [
+        {
+          "price": "price_1SS462C2zZMWllgs5NmeWt9Y",
+          "quantity": 1
+        }
+      ],
+      "metadata": {
+        "app": "chatiq",
+        "team_id": "6eb8602b-b5d7-4544-94b1-429443242378"
+      },
+      "subscription_data": {
+        "metadata": {
+          "app": "chatiq",
+          "team_id": "6eb8602b-b5d7-4544-94b1-429443242378"
+        }
+      }
+    }
+  }
+}

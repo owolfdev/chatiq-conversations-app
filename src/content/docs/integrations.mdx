@@ -1,0 +1,175 @@
+export const metadata = {
+  title: "Integrations",
+  description: "Integrate ChatIQ chatbots into your website, application, or platform.",
+  tags: ["integrations", "website", "platforms", "embed", "widget", "embed code"],
+};
+
+# Integrations
+
+Integrate ChatIQ chatbots into your website, application, or platform. Choose the integration method that best fits your stack.
+
+---
+
+## Choose Your Integration Path
+
+### Level 1: Public Bot Page (Zero Setup)
+
+Share your bot's public page URL and start collecting conversations immediately.
+
+```
+https://bot.chatiq.io/your-bot-slug
+```
+
+- Best for: Sharing a chatbot fast, no website changes
+- Setup time: ~1 minute
+
+### Level 2: Embeddable Widget (Fastest Embed)
+
+Use our embeddable widget to add ChatIQ to any site with a single script tag. Great for marketing sites and quick launches.
+
+- Best for: Websites, landing pages, blogs
+- Setup time: ~5 minutes
+
+Find the embed helper in your dashboard:
+
+```
+/dashboard/bots/your-bot-slug/embed
+```
+
+### Level 3: Platform/Framework Integration
+
+Use API keys + a server-side proxy and build a custom UI with your framework (Next.js, React, WordPress, Shopify).
+
+- Best for: Apps that need custom UI or data flow
+- Setup time: 10-30 minutes
+
+### Level 4: Direct API Access
+
+Call the API directly from your backend to build any experience you want.
+
+- Best for: Full control and custom products
+- Setup time: Varies
+
+**Security note:** Keep API keys on the server for Levels 3 and 4.
+
+---
+
+## Available Integrations
+
+### Framework Integrations
+
+- **[Next.js](/docs/integrations/nextjs)** - Complete guide for Next.js 16 App Router
+- **[React](/docs/integrations/react)** - React component integration (coming soon)
+- **[Vue.js](/docs/integrations/vue)** - Vue.js integration (coming soon)
+
+### Platform Integrations
+
+- **[Website/Vanilla JS](/docs/integrations/website)** - Embed in any website with vanilla JavaScript
+- **[WordPress](/docs/integrations/wordpress)** - WordPress plugin integration (coming soon)
+- **[Shopify](/docs/integrations/shopify)** - Shopify app integration (coming soon)
+
+### API Integration
+
+- **[REST API](/docs/api)** - Direct API integration for any platform
+- **[Streaming API](/docs/api-streaming)** - Real-time streaming responses
+
+---
+
+## Quick Comparison
+
+| Integration Type | Best For | Complexity | Setup Time |
+|-----------------|----------|------------|------------|
+| **Next.js** | Next.js applications | Medium | 10-15 min |
+| **Website/JS** | Static sites, any HTML page | Easy | 5 min |
+| **REST API** | Full control, custom UI | Medium | 15-20 min |
+| **React** | React applications | Medium | 10-15 min |
+
+---
+
+## Getting Started
+
+1. **Get your API key** from the [dashboard](https://chatiq.io/dashboard/api-keys)
+2. **Choose your integration method** based on your stack
+3. **Follow the guide** for your chosen platform
+4. **Test your integration** before going live
+
+---
+
+## Common Integration Patterns
+
+### Pattern 1: Server-Side Proxy (Recommended)
+
+Use a backend endpoint to proxy requests and keep API keys secure:
+
+```typescript
+// Your backend API route
+POST /api/chatbot
+  → Forwards to ChatIQ API
+  → Returns response to client
+```
+
+**Benefits:**
+- API key stays on server
+- No CORS issues
+- Can add custom logic
+
+### Pattern 2: Direct API Call
+
+Call ChatIQ API directly from your backend:
+
+```typescript
+// Server-side only
+const response = await fetch('https://chatiq.io/api/chat', {
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+  },
+  // ...
+});
+```
+
+**Benefits:**
+- Simple setup
+- Full control
+- Works from any backend
+
+### Pattern 3: Client-Side Widget (Coming Soon)
+
+One-line embed script for websites:
+
+```html
+<script src="https://chatiq.io/embed.js" data-bot="your-bot-slug"></script>
+```
+
+**Benefits:**
+- Easiest setup
+- No code required
+- Automatic updates
+
+---
+
+## Security Best Practices
+
+1. **Never expose API keys** in client-side code
+2. **Use server-side proxy** for web applications
+3. **Implement rate limiting** on your proxy
+4. **Validate user input** before sending to API
+5. **Monitor usage** in your dashboard
+
+---
+
+## Need Help?
+
+- **Documentation**: Browse integration guides above
+- **API Reference**: [Complete API Docs](/docs/api)
+- **Support**: support@chatiq.io
+
+---
+
+## Coming Soon
+
+- React integration guide
+- Vue.js integration guide
+- WordPress plugin
+- Shopify app
+- One-line embed script
+- Mobile SDKs (iOS/Android)

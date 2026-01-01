@@ -1,0 +1,215 @@
+export const metadata = {
+  title: "Product Assistant Example",
+  description: "Create a product assistant chatbot that helps customers discover and understand your products.",
+  tags: ["examples", "product", "commerce", "assistant", "product assistant"],
+};
+
+# Product Assistant Example
+
+Build a product assistant chatbot that helps customers discover products, compare features, and make informed purchasing decisions.
+
+---
+
+## Overview
+
+A product assistant helps customers:
+- Discover products that match their needs
+- Compare features and specifications
+- Understand product capabilities
+- Get recommendations
+
+**Best for:** E-commerce, SaaS, product companies, marketplaces
+
+---
+
+## Step 1: Create Your Bot
+
+**Name:** `Product Assistant` or `Shopping Assistant`
+
+**Description:** `Helps customers discover and learn about our products`
+
+**System Prompt:**
+```
+You are a helpful product assistant. Your goal is to help customers 
+find the right products for their needs.
+
+Guidelines:
+- Recommend products based on customer needs
+- Highlight key features and benefits
+- Provide accurate pricing information
+- Compare products when asked
+- Be enthusiastic but honest
+- Guide customers toward the best solution
+```
+
+---
+
+## Step 2: Add Product Documents
+
+### Document 1: Product Catalog
+
+**Title:** `Product Catalog`
+
+**Content:**
+```
+# Product Catalog
+
+## Product A: Basic Plan
+
+**Price:** $29/month
+
+**Features:**
+- Feature 1
+- Feature 2
+- Feature 3
+
+**Best for:** Small teams, individuals getting started
+
+**Limitations:** 10 items, basic support
+
+---
+
+## Product B: Pro Plan
+
+**Price:** $99/month
+
+**Features:**
+- All Basic features
+- Advanced Feature 1
+- Advanced Feature 2
+- Priority support
+
+**Best for:** Growing businesses, teams
+
+**Limitations:** 100 items, standard SLA
+
+---
+
+## Product C: Enterprise Plan
+
+**Price:** Custom pricing
+
+**Features:**
+- All Pro features
+- Enterprise Feature 1
+- Enterprise Feature 2
+- Dedicated support
+- Custom integrations
+
+**Best for:** Large organizations, high-volume users
+```
+
+**Tags:** `products, pricing, features`
+
+---
+
+### Document 2: Feature Comparison
+
+**Title:** `Feature Comparison`
+
+**Content:**
+```
+# Feature Comparison
+
+| Feature | Basic | Pro | Enterprise |
+|---------|-------|-----|------------|
+| Items | 10 | 100 | Unlimited |
+| Support | Email | Priority | Dedicated |
+| Integrations | 3 | 10 | Custom |
+| API Access | Limited | Full | Full + Custom |
+```
+
+**Tags:** `comparison, features, pricing`
+
+---
+
+### Document 3: Use Cases
+
+**Title:** `Product Use Cases`
+
+**Content:**
+```
+# Product Use Cases
+
+## Use Case 1: Small Team
+
+**Scenario:** A team of 5 people needs basic collaboration
+
+**Recommended:** Basic Plan
+**Why:** Covers team size, includes essential features
+
+## Use Case 2: Growing Business
+
+**Scenario:** A company with 50 employees needs advanced features
+
+**Recommended:** Pro Plan
+**Why:** Handles larger teams, includes priority support
+
+## Use Case 3: Enterprise
+
+**Scenario:** Large organization with custom requirements
+
+**Recommended:** Enterprise Plan
+**Why:** Custom solutions, dedicated support, unlimited scale
+```
+
+**Tags:** `use-cases, recommendations`
+
+---
+
+## Step 3: Test Product Queries
+
+Try these questions:
+- "What's the difference between Basic and Pro?"
+- "Which plan is best for a team of 20?"
+- "What features does Enterprise include?"
+- "How much does the Pro plan cost?"
+
+---
+
+## Advanced: Dynamic Recommendations
+
+Enhance your system prompt for better recommendations:
+
+```
+You are a product assistant. When customers ask about products:
+
+1. First, understand their needs (team size, use case, budget)
+2. Recommend the best-fit product
+3. Explain why it's a good fit
+4. Mention alternatives if relevant
+5. Always provide accurate pricing
+```
+
+---
+
+## Integration Example
+
+```javascript
+// Product recommendation widget
+async function getProductRecommendation(needs) {
+  const response = await fetch('/api/product-assistant', {
+    method: 'POST',
+    body: JSON.stringify({
+      message: `I need a product for: ${needs}`,
+    }),
+  });
+  return response.json();
+}
+```
+
+---
+
+## Best Practices
+
+- **Be honest** - Don't oversell features
+- **Provide comparisons** - Help customers make informed decisions
+- **Include pricing** - Be transparent about costs
+- **Update regularly** - Keep product info current
+
+---
+
+## Next Steps
+
+- [Support Bot Example](/docs/examples/support-bot)
+- [API Reference](/docs/api)

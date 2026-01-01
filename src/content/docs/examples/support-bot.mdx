@@ -1,0 +1,354 @@
+export const metadata = {
+  title: "Customer Support Bot Example",
+  description: "Step-by-step guide to creating a customer support chatbot with ChatIQ.",
+  tags: ["examples", "support", "documentation", "chatbot", "support bot"],
+};
+
+# Customer Support Bot Example
+
+Learn how to build a customer support chatbot that answers questions based on your documentation, handles common issues, and escalates when needed.
+
+---
+
+## Overview
+
+A customer support bot helps users find answers to common questions, troubleshoot issues, and understand your product or service. This example shows you how to set one up in under 15 minutes.
+
+**What you'll build:**
+- A support bot that answers FAQ questions
+- Knowledge base with troubleshooting guides
+- Escalation paths for complex issues
+- Friendly, helpful personality
+
+---
+
+## Step 1: Create Your Bot
+
+1. Go to **Bots** → **Create New Bot**
+2. Fill in the details:
+
+   **Name:** `Support Bot` or `Customer Support Assistant`
+   
+   **Description:** `Helps customers with common questions and troubleshooting`
+   
+   **Slug:** `support-bot` or `customer-support`
+   
+   **System Prompt:**
+   ```
+   You are a helpful customer support assistant. Your goal is to help customers 
+   find answers to their questions quickly and efficiently.
+   
+   Guidelines:
+   - Answer questions based on the provided documentation
+   - Be friendly, professional, and concise
+   - If you don't know the answer, suggest contacting support@example.com
+   - For technical issues, ask for specific error messages
+   - Always be patient and understanding
+   ```
+
+   **Status:** `Active`
+
+3. Click **Save Changes**
+
+---
+
+## Step 2: Add Support Documents
+
+Create documents that contain the information your bot needs.
+
+### Document 1: FAQ
+
+**Title:** `Frequently Asked Questions`
+
+**Content:**
+```
+# Frequently Asked Questions
+
+## Account & Billing
+
+**How do I reset my password?**
+Go to the login page and click "Forgot Password". Enter your email address and check your inbox for reset instructions.
+
+**How do I update my billing information?**
+Navigate to Settings → Billing. You can update your payment method there.
+
+**Can I cancel my subscription?**
+Yes, you can cancel anytime from Settings → Billing → Cancel Subscription.
+
+## Product Features
+
+**How do I create a new bot?**
+1. Go to the Bots section in your dashboard
+2. Click "Create New Bot"
+3. Fill in the bot details and save
+
+**What file formats are supported?**
+We support text files, markdown, and PDFs. More formats coming soon!
+
+## Troubleshooting
+
+**The bot isn't responding correctly**
+- Check that your documents are fully processed (green status)
+- Ensure documents are linked to the bot
+- Try rephrasing your question
+
+**I'm getting an error message**
+Please share the exact error message you're seeing, and we'll help troubleshoot.
+```
+
+**Tags:** `faq, support, billing, features`
+
+**Link to Bot:** Select your support bot
+
+---
+
+### Document 2: Troubleshooting Guide
+
+**Title:** `Troubleshooting Guide`
+
+**Content:**
+```
+# Troubleshooting Guide
+
+## Common Issues
+
+### Bot Not Responding
+
+**Symptoms:** Bot doesn't answer or gives generic responses
+
+**Solutions:**
+1. Verify documents are processed (check embedding status)
+2. Ensure documents contain relevant information
+3. Try asking the question differently
+4. Check that the bot is set to "Active" status
+
+### Slow Response Times
+
+**Symptoms:** Bot takes too long to respond
+
+**Solutions:**
+1. Check your API rate limits
+2. Reduce document size if possible
+3. Contact support if issue persists
+
+### Incorrect Answers
+
+**Symptoms:** Bot provides wrong information
+
+**Solutions:**
+1. Review and update your documents
+2. Add more specific information
+3. Check system prompt for clarity
+4. Test with different question phrasings
+```
+
+**Tags:** `troubleshooting, support, technical`
+
+**Link to Bot:** Select your support bot
+
+---
+
+### Document 3: Product Information
+
+**Title:** `Product Overview`
+
+**Content:**
+```
+# Product Overview
+
+## What is ChatIQ?
+
+ChatIQ is an AI chatbot platform that lets you create custom chatbots powered by your own knowledge base.
+
+## Key Features
+
+- **Document-Based Knowledge:** Upload documents and the bot learns from them
+- **Easy Integration:** Embed on your website or use our API
+- **Conversation Memory:** Bots remember context within conversations
+- **Analytics:** Track conversations and improve over time
+
+## Pricing Plans
+
+**Evaluation Plan:**
+- 1 chatbot
+- 1 document
+- Unlimited messages (100 AI calls during evaluation)
+
+**Pro Plan:**
+- Up to 3 bots
+- 50 documents
+- 2,000 AI calls/month
+
+**Enterprise:**
+- Custom limits
+- Priority support
+- SSO and security features
+```
+
+**Tags:** `product, features, pricing`
+
+**Link to Bot:** Select your support bot
+
+---
+
+## Step 3: Test Your Bot
+
+1. Go to **Bots** → Select your support bot → **Test**
+2. Try these questions:
+   - "How do I reset my password?"
+   - "What are your pricing plans?"
+   - "The bot isn't working, what should I do?"
+   - "What file formats do you support?"
+
+3. Verify the bot:
+   - Answers based on your documents
+   - Provides helpful, accurate information
+   - Suggests contacting support when appropriate
+
+---
+
+## Step 4: Customize Behavior
+
+### Add Escalation Message
+
+Update your system prompt to include escalation:
+
+```
+You are a helpful customer support assistant. 
+
+When you cannot answer a question based on the documentation, 
+politely say: "I don't have that information, but our support team 
+can help! Email us at support@example.com or visit our help center."
+```
+
+### Add Personality
+
+Make the bot match your brand voice:
+
+```
+You are a friendly and professional customer support assistant. 
+Use a warm, helpful tone. Always acknowledge the customer's concern 
+before providing an answer.
+```
+
+---
+
+## Step 5: Embed on Your Website
+
+### Option 1: Public Chat Page
+
+Link to your bot's public page:
+
+```html
+<a href="https://bot.chatiq.io/support-bot">
+  Chat with Support
+</a>
+```
+
+### Option 2: API Integration
+
+Use the API to create a custom chat widget:
+
+```javascript
+// Your website's chat widget
+async function askSupport(question) {
+  const response = await fetch('/api/support-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: question }),
+  });
+  return response.json();
+}
+```
+
+See [Website Integration](/docs/integrations/website) for full examples.
+
+---
+
+## Best Practices
+
+### ✅ Do
+
+- **Keep documents updated** - Update FAQs as new questions arise
+- **Be specific** - Include exact steps and error messages
+- **Test regularly** - Try new questions and verify answers
+- **Monitor analytics** - See what users are asking
+- **Provide escalation paths** - Always offer human support option
+
+### ❌ Don't
+
+- **Make promises you can't keep** - Be honest about limitations
+- **Provide medical/legal advice** - Direct to professionals
+- **Share sensitive information** - Keep credentials and personal data secure
+- **Assume user knowledge** - Explain technical terms
+
+---
+
+## Advanced: Multi-Language Support
+
+Create separate bots for different languages:
+
+1. Create `Support Bot (English)`
+2. Create `Support Bot (Spanish)`
+3. Add translated documents to each
+4. Route users to appropriate bot based on language
+
+---
+
+## Monitoring & Improvement
+
+### Track Common Questions
+
+1. Go to **Analytics** in your dashboard
+2. Review popular questions
+3. Add missing information to documents
+4. Update FAQs based on trends
+
+### A/B Testing
+
+Test different system prompts:
+
+- **Version A:** More formal, technical
+- **Version B:** More friendly, conversational
+
+See which performs better with your audience.
+
+---
+
+## Example System Prompts
+
+### Friendly & Casual
+
+```
+You are a friendly support assistant. Use a casual, helpful tone. 
+Make customers feel welcome and supported.
+```
+
+### Professional & Technical
+
+```
+You are a technical support specialist. Provide precise, accurate 
+information. Use technical terminology when appropriate.
+```
+
+### Empathetic & Patient
+
+```
+You are a patient and understanding support assistant. Acknowledge 
+frustrations and provide clear, step-by-step solutions.
+```
+
+---
+
+## Next Steps
+
+- [Product Assistant Example](/docs/examples/product-assistant) - Sales-focused bot
+- [Documentation Bot Example](/docs/examples/documentation-bot) - Technical docs bot
+- [API Reference](/docs/api) - Full API documentation
+
+---
+
+## Need Help?
+
+- **Documentation**: [Full Docs](/docs)
+- **Support**: support@chatiq.io

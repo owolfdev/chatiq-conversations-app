@@ -1,0 +1,85 @@
+export const metadata = {
+  title: "Shopify Integration Guide",
+  description: "Add ChatIQ to your Shopify store today and prepare for the upcoming app.",
+  tags: ["integrations", "shopify", "ecommerce", "embed"],
+};
+
+# Shopify Integration Guide
+
+This guide shows how to embed the ChatIQ widget on a Shopify storefront today, and how to plan for a full custom integration.
+
+---
+
+## Recommended: Embed Widget (Fastest)
+
+You can add the widget script to your theme so it loads on every page.
+
+### Option A: Add to theme.liquid
+
+1. In Shopify Admin, go to **Online Store → Themes**.
+2. Click **Edit code** on your active theme.
+3. Open `layout/theme.liquid`.
+4. Paste this script just before `</body>`:
+
+```html
+<script
+  src="https://www.chatiq.io/widget.js"
+  data-bot-slug="your-bot-slug"
+  data-position="bottom-right"
+  data-primary-color="#10b981"
+  async
+></script>
+```
+
+### Option B: Add to a specific template
+
+If you only want the widget on certain pages, add the script to those templates instead of `theme.liquid`.
+
+### Notes
+
+- **Do not include your API key** in client-side script tags.
+- This is the safest way to go live while the Shopify app is in development.
+
+---
+
+## Advanced: API Integration (Custom UI)
+
+For full control, use a backend service and Shopify’s App Proxy to keep your API key private.
+
+### High-level flow
+
+1. Create a Shopify app with an App Proxy.
+2. The proxy forwards storefront requests to your server.
+3. Your server calls ChatIQ with the API key.
+
+### Example request from storefront
+
+```javascript
+const response = await fetch('/apps/chatiq/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message: 'Hello', bot_slug: 'your-bot-slug' }),
+});
+```
+
+### Server-side (your backend)
+
+```typescript
+// Forward to ChatIQ API using your private API key.
+```
+
+---
+
+## Security Best Practices
+
+- Never expose API keys in browser code.
+- Use an App Proxy or a backend server for API calls.
+- Validate user input and add rate limiting.
+
+---
+
+## Roadmap
+
+A native Shopify app is planned for one-click installation, theme integration, and settings in the Shopify admin.
+
+If you want early access, contact support@chatiq.io.

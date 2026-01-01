@@ -1,0 +1,88 @@
+export const metadata = {
+  title: "WordPress Integration Guide",
+  description: "Embed ChatIQ on your WordPress site today and prepare for the upcoming plugin.",
+  tags: ["integrations", "wordpress", "embed", "widget"],
+};
+
+# WordPress Integration Guide
+
+This guide shows how to embed the ChatIQ widget on a WordPress site today, and how to use the API securely if you want custom behavior.
+
+---
+
+## Recommended: Embed Widget (No Plugin Needed)
+
+You can add the widget script to your theme footer or via a header/footer injection plugin.
+
+### Option A: Add to your theme
+
+Add the script to `footer.php` right before `</body>`:
+
+```html
+<!-- Add this just before </body> -->
+<script
+  src="https://www.chatiq.io/widget.js"
+  data-bot-slug="your-bot-slug"
+  data-position="bottom-right"
+  data-primary-color="#10b981"
+  async
+></script>
+```
+
+### Option B: Use a plugin
+
+Install a header/footer injection plugin (e.g., “Insert Headers and Footers”) and paste the same script into the **Footer** field.
+
+### Notes
+
+- **Do not include your API key** in client-side script tags.
+- The widget is the safest, fastest way to go live while the WordPress plugin is in development.
+
+---
+
+## Advanced: API Integration (Custom UI)
+
+If you want full control over the UI, call the ChatIQ API from a server-side proxy.
+
+### 1) Add API key to `wp-config.php`
+
+```php
+define('CHATIQ_API_KEY', 'sk_live_your_api_key_here');
+define('CHATIQ_API_URL', 'https://www.chatiq.io/api');
+define('CHATIQ_BOT_SLUG', 'your-bot-slug');
+```
+
+### 2) Create a proxy endpoint
+
+Add a custom endpoint (via a small plugin or theme `functions.php`) that forwards requests to ChatIQ. Example (simplified):
+
+```php
+// Pseudo-code: create a REST route and forward to ChatIQ API
+// Ensure authentication and rate limiting in production.
+```
+
+### 3) Call your proxy from the frontend
+
+```javascript
+const response = await fetch('/wp-json/chatiq/v1/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message: 'Hello', bot_slug: 'your-bot-slug' }),
+});
+```
+
+---
+
+## Security Best Practices
+
+- Never expose API keys in browser code.
+- Use a server-side proxy with rate limiting.
+- Validate user input before forwarding to ChatIQ.
+
+---
+
+## Roadmap
+
+A native WordPress plugin is planned to provide one-click setup, theme-friendly styling, and easy configuration.
+
+If you want early access, contact support@chatiq.io.

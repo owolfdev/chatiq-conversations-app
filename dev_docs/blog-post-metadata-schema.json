@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Blog Post MDX Metadata",
+  "description": "Schema for blog post metadata in MDX files",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "title",
+    "author",
+    "publishDate",
+    "description",
+    "categories",
+    "tags",
+    "modifiedDate",
+    "image",
+    "draft",
+    "relatedPosts",
+    "slug"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the post",
+      "examples": ["blog-001", "blog-002"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["blog"],
+      "description": "Must be the literal string 'blog'",
+      "default": "blog"
+    },
+    "title": {
+      "type": "string",
+      "description": "Post title (displayed in listings and headers)",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "author": {
+      "type": "string",
+      "description": "Author name",
+      "minLength": 1
+    },
+    "publishDate": {
+      "type": "string",
+      "description": "Publication date in ISO format (YYYY-MM-DD) or ISO datetime",
+      "pattern": "^(\\d{4}-\\d{2}-\\d{2})(T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z)?$",
+      "examples": ["2025-12-02", "2025-12-02T00:00:00.000Z"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Post description/excerpt (used in listings and meta tags)",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "categories": {
+      "type": "array",
+      "description": "Array of category strings (used for filtering)",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "tags": {
+      "type": "array",
+      "description": "Array of tag strings (used for filtering and search)",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "modifiedDate": {
+      "type": "string",
+      "description": "Last modification date in ISO datetime format",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+      "examples": ["2025-12-02T00:00:00.000Z"]
+    },
+    "image": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^/blog/images/.+\\.(jpg|jpeg|png|svg|webp)$",
+          "description": "Image path relative to public directory"
+        },
+        {
+          "type": "null",
+          "description": "No image (placeholder may be used)"
+        }
+      ]
+    },
+    "draft": {
+      "type": "boolean",
+      "description": "Whether the post is a draft (drafts are excluded from listings)",
+      "default": false
+    },
+    "relatedPosts": {
+      "type": "array",
+      "description": "Array of related post slugs",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "description": "URL-friendly slug"
+      },
+      "minItems": 0
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly identifier (usually matches filename without .mdx)",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "readingTime": {
+      "type": "number",
+      "description": "Estimated reading time in minutes (auto-calculated if not provided)",
+      "minimum": 1
+    },
+    "filePath": {
+      "type": "string",
+      "description": "Relative file path (auto-set by cache script)",
+      "readOnly": true
+    },
+    "imageStatus": {
+      "type": "string",
+      "enum": ["pending", "generating", "complete", "failed"],
+      "description": "Image generation status (auto-set by image generator)"
+    },
+    "imageTheme": {
+      "type": "string",
+      "description": "Manual theme override for image generation",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "imageComplexity": {
+      "type": "string",
+      "enum": ["simple", "medium", "complex"],
+      "description": "Manual complexity override for image generation"
+    }
+  },
+  "additionalProperties": false
+}
+

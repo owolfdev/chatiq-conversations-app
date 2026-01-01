@@ -1,0 +1,65 @@
+export const metadata = {
+  title: "Troubleshooting Guide",
+  description: "Fix common setup, widget, and API issues quickly.",
+  tags: [
+    "troubleshooting",
+    "widget",
+    "api",
+    "setup",
+    "errors",
+    "common issues",
+  ],
+};
+
+# Troubleshooting Guide
+
+Common issues and quick fixes for ChatIQ integrations.
+
+---
+
+## Widget Not Showing
+
+- Confirm your script tag is added right before `</body>`.
+- Make sure `data-bot-slug` matches an **active** bot.
+- Disable ad blockers or test in an incognito window.
+- Check the browser console for blocked network requests.
+
+---
+
+## Bot Not Responding
+
+- Verify your bot status is **Active** in the dashboard.
+- Make sure documents finished processing (embeddings).
+- Try a simple test question to confirm baseline behavior.
+
+---
+
+## API Errors (401/403)
+
+- Confirm your API key is valid and active.
+- Ensure the key is used server-side only.
+- Check that your key has access to the bot slug you are using.
+
+---
+
+## API Errors (429)
+
+- You may be rate-limited.
+- Add a retry with backoff or contact support for limits.
+
+---
+
+## Streaming Issues
+
+- Ensure your proxy forwards `text/event-stream` correctly.
+- Disable response buffering on your server.
+- Confirm the client is reading the stream incrementally.
+
+---
+
+## Still Stuck?
+
+Email support@chatiq.io with:
+- Bot slug
+- API endpoint or page URL
+- Error logs or screenshots

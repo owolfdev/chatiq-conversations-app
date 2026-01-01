@@ -1,0 +1,475 @@
+export const metadata = {
+  title: "Website Integration",
+  description: "Embed ChatIQ chatbots into any website using vanilla JavaScript or a simple API proxy.",
+  tags: [
+    "integrations",
+    "website",
+    "javascript",
+    "proxy",
+    "embed code",
+    "script tag",
+  ],
+};
+
+# Website Integration
+
+Integrate ChatIQ chatbots into any website, whether it's a static site, WordPress, or any HTML page. This guide covers multiple approaches from simple to advanced.
+
+---
+
+## Option 1: API Proxy Pattern (Recommended)
+
+The safest way to integrate ChatIQ is through a server-side proxy that keeps your API key secure.
+
+### Step 1: Create a Backend Proxy
+
+Create an API endpoint on your server that forwards requests to ChatIQ:
+
+#### Node.js/Express Example
+
+```javascript
+// server.js or api/chatbot.js
+const express = require('express');
+const app = express();
+
+app.post('/api/chatbot', async (req, res) => {
+  const { message, conversation_id } = req.body;
+
+  try {
+    const response = await fetch('https://chatiq.io/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CHATIQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        message,
+        bot_slug: process.env.CHATIQ_BOT_SLUG,
+        stream: true,
+        conversation_id: conversation_id || null,
+      }),
+    });
+
+    // Stream the response back
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    response.body.pipeTo(
+      new WritableStream({
+        write(chunk) {
+          res.write(chunk);
+        },
+        close() {
+          res.end();
+        },
+      })
+    );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+#### PHP Example
+
+```php
+<?php
+// api/chatbot.php
+header('Content-Type: text/event-stream');
+header('Cache-Control: no-cache');
+header('Connection: keep-alive');
+
+$message = $_POST['message'] ?? '';
+$conversation_id = $_POST['conversation_id'] ?? null;
+
+$ch = curl_init('https://chatiq.io/api/chat');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'message' => $message,
+    'bot_slug' => getenv('CHATIQ_BOT_SLUG'),
+    'stream' => true,
+    'conversation_id' => $conversation_id,
+]));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . getenv('CHATIQ_API_KEY'),
+]);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) {
+    echo $data;
+    flush();
+    return strlen($data);
+});
+
+curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+### Step 2: Create the Chat Widget
+
+Create an HTML page with a chat interface:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Widget Example</title>
+  <style>
+    .chat-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      height: 500px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .chat-header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      border-radius: 8px 8px 0 0;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    .message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 80%;
+    }
+    .message.user {
+      background: #007bff;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+    .message.assistant {
+      background: #f1f1f1;
+      color: #333;
+    }
+    .chat-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .chat-input button {
+      margin-left: 10px;
+      padding: 8px 16px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container" id="chatContainer">
+    <div class="chat-header">
+      <h3>Chat with us</h3>
+    </div>
+    <div class="chat-messages" id="messages"></div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Type your message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let conversationId = null;
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Add user message to UI
+      addMessage('user', message);
+      input.value = '';
+
+      try {
+        const response = await fetch('/api/chatbot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message,
+            conversation_id: conversationId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+        let assistantMessageDiv = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') break;
+
+              try {
+                const parsed = JSON.parse(data);
+                
+                // Handle content chunks
+                if (parsed.choices?.[0]?.delta?.content) {
+                  const content = parsed.choices[0].delta.content;
+                  fullResponse += content;
+                  
+                  // Create message div on first chunk
+                  if (!assistantMessageDiv) {
+                    assistantMessageDiv = addMessage('assistant', fullResponse);
+                  } else {
+                    assistantMessageDiv.textContent = fullResponse;
+                  }
+                }
+                
+                // Handle conversation ID
+                if (parsed.conversationId) {
+                  conversationId = parsed.conversationId;
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      } catch (error) {
+        addMessage('assistant', 'Sorry, something went wrong. Please try again.');
+      }
+    }
+
+    function addMessage(role, content) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${role}`;
+      messageDiv.textContent = content;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      return messageDiv;
+    }
+
+    // Allow Enter key to send
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
+```
+
+---
+
+## Option 2: Direct API Call (Server-Side Only)
+
+If you're making calls from your server (not the browser), you can call the ChatIQ API directly:
+
+```javascript
+// Server-side only (Node.js example)
+const response = await fetch('https://chatiq.io/api/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.CHATIQ_API_KEY}`,
+  },
+  body: JSON.stringify({
+    message: 'Hello!',
+    bot_slug: 'your-bot-slug',
+    stream: false, // Use JSON mode for simplicity
+  }),
+});
+
+const data = await response.json();
+console.log(data.response); // Bot's response
+```
+
+**⚠️ Important:** Never use this approach from client-side JavaScript, as it would expose your API key.
+
+---
+
+## Option 3: Public Chat Page Link
+
+The simplest integration is to link to the public chat page:
+
+```html
+<a href="https://bot.chatiq.io/your-bot-slug" target="_blank">
+  Chat with us
+</a>
+```
+
+Or embed in an iframe:
+
+```html
+<iframe 
+  src="https://bot.chatiq.io/your-bot-slug" 
+  width="100%" 
+  height="600"
+  frameborder="0">
+</iframe>
+```
+
+---
+
+## Styling Your Widget
+
+Customize the chat widget to match your site's design:
+
+```css
+/* Custom styles */
+.chat-container {
+  font-family: 'Your Font', sans-serif;
+  border-radius: 12px;
+}
+
+.chat-header {
+  background: #your-brand-color;
+}
+
+.message.user {
+  background: #your-primary-color;
+}
+```
+
+---
+
+## Advanced: Floating Widget
+
+Create a floating chat button that opens a chat window:
+
+```html
+<!-- Floating button -->
+<button 
+  id="chatToggle" 
+  style="position: fixed; bottom: 20px; right: 20px; 
+         width: 60px; height: 60px; border-radius: 50%; 
+         background: #4CAF50; color: white; border: none; 
+         cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  💬
+</button>
+
+<script>
+  const chatContainer = document.getElementById('chatContainer');
+  chatContainer.style.display = 'none'; // Hidden by default
+
+  document.getElementById('chatToggle').addEventListener('click', () => {
+    const isVisible = chatContainer.style.display !== 'none';
+    chatContainer.style.display = isVisible ? 'none' : 'flex';
+  });
+</script>
+```
+
+---
+
+## Error Handling
+
+Always handle errors gracefully:
+
+```javascript
+try {
+  const response = await fetch('/api/chatbot', {
+    // ... request config
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Request failed');
+  }
+
+  // Process response...
+} catch (error) {
+  console.error('Chat error:', error);
+  addMessage('assistant', 'Sorry, I encountered an error. Please try again later.');
+}
+```
+
+---
+
+## Best Practices
+
+1. **Use server-side proxy** - Keep API keys secure
+2. **Handle loading states** - Show "typing..." indicator
+3. **Maintain conversation context** - Store and send `conversation_id`
+4. **Handle errors gracefully** - Show user-friendly error messages
+5. **Test thoroughly** - Test on different browsers and devices
+6. **Monitor usage** - Track API usage in your dashboard
+
+---
+
+## Examples
+
+### Minimal Example
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Chat</title>
+</head>
+<body>
+  <div id="chat"></div>
+  <input id="input" type="text">
+  <button onclick="send()">Send</button>
+
+  <script>
+    async function send() {
+      const message = document.getElementById('input').value;
+      const response = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+      const data = await response.json();
+      document.getElementById('chat').innerHTML += `<p>${data.response}</p>`;
+    }
+  </script>
+</body>
+</html>
+```
+
+---
+
+## Next Steps
+
+- See [API Reference](/docs/api) for complete API documentation
+- Check [Streaming Guide](/docs/api-streaming) for real-time responses
+- Explore [Next.js Integration](/docs/integrations/nextjs) for Next.js apps
+
+---
+
+## Need Help?
+
+- **Documentation**: [Full API Docs](/docs/api)
+- **Support**: support@chatiq.io
