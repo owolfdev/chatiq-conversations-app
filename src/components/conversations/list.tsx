@@ -31,7 +31,9 @@ export function ConversationsList({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const pollingRef = useRef<ReturnType<typeof globalThis.setInterval> | null>(
+    null
+  );
 
   const sourceOptions = useMemo(() => {
     const available = Array.from(
