@@ -41,6 +41,9 @@ export async function proxyToMainApp(req: Request, path: string) {
   });
 
   const proxyHeaders = new Headers(response.headers);
+  // Avoid decoding issues when the upstream response was already decompressed.
+  proxyHeaders.delete("content-encoding");
+  proxyHeaders.delete("content-length");
   if (process.env.NODE_ENV !== "production") {
     const cookieHeader = req.headers.get("cookie") || "";
     const cookieNames = cookieHeader
