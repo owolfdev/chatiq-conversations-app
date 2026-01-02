@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMainAppUrl } from "@/lib/main-app-url";
+import { createClient } from "@/utils/supabase/server";
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -23,6 +24,14 @@ export async function proxyToMainApp(req: Request, path: string) {
   const method = req.method.toUpperCase();
   const body =
     method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer();
+
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session?.access_token && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${session.access_token}`);
+  }
 
   const response = await fetch(targetUrl, {
     method,
