@@ -201,15 +201,7 @@ export function ConversationViewer({
     localMessages.length > 0
       ? localMessages[localMessages.length - 1]?.createdAt
       : null;
-  const [standalone, setStandalone] = useState(true);
-
-  useEffect(() => {
-    const isStandaloneDisplay =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ?? false;
-    const isIosStandalone =
-      "standalone" in navigator && (navigator as any).standalone;
-    setStandalone(Boolean(isStandaloneDisplay || isIosStandalone));
-  }, []);
+  const standalone = true;
 
   useEffect(() => {
     setLocalMessages(messages);
