@@ -128,7 +128,6 @@ export default function ConversationsClient({
       setIsLoading(false);
     }
   }, [
-    mainAppUrl,
     selectedBot,
     selectedTopic,
     selectedStatus,
