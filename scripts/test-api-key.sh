@@ -40,7 +40,7 @@ fi
 
 echo ""
 echo "Test 2: Invalid API key should be rejected"
-INVALID_KEY="sk_live_invalid_REDACTED"
+INVALID_KEY="sk_live_invalid_REPLACE_ME"
 RESPONSE2=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$BASE_URL/api/chat" \
   -H "Authorization: Bearer $INVALID_KEY" \
   -H "Content-Type: application/json" \
@@ -77,4 +77,3 @@ if [ "$HTTP_STATUS3" = "200" ] || [ "$HTTP_STATUS3" = "429" ]; then
 else
   echo "⚠️  NOTE: No-key request returned status $HTTP_STATUS3"
 fi
-
