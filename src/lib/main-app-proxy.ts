@@ -29,6 +29,7 @@ export async function proxyToMainApp(req: Request, path: string) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
+  const hasSessionToken = Boolean(session?.access_token);
   if (session?.access_token && !headers.has("authorization")) {
     headers.set("authorization", `Bearer ${session.access_token}`);
   }
@@ -55,6 +56,12 @@ export async function proxyToMainApp(req: Request, path: string) {
     proxyHeaders.set("x-main-target", targetUrl);
     proxyHeaders.set("x-main-cookie-names", cookieNames.join(","));
     proxyHeaders.set("x-main-has-auth-cookie", authCookieName ? "true" : "false");
+  }
+
+  if (process.env.MAIN_APP_PROXY_DEBUG === "true") {
+    proxyHeaders.set("x-main-target", targetUrl);
+    proxyHeaders.set("x-main-auth-forwarded", headers.has("authorization") ? "true" : "false");
+    proxyHeaders.set("x-main-has-session", hasSessionToken ? "true" : "false");
   }
 
   return new NextResponse(response.body, {
