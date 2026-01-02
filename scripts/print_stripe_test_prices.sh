@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Must be a TEST key: sk_test_...
-: "${STRIPE_API_KEY:?Set STRIPE_API_KEY=sk_test_REDACTED before running}"
+: "${STRIPE_API_KEY:?Set STRIPE_API_KEY=sk_test_REPLACE_ME before running}"
 
 echo "# TEST mode Stripe price IDs for .env.local"
 

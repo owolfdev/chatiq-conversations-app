@@ -3,7 +3,7 @@
 # Test ChatIQ API on localhost
 # Make sure your local server is running: npm run dev
 
-API_KEY="sk_live_REDACTED"
+API_KEY="sk_live_REPLACE_ME"
 BOT_SLUG="owolf-dot-com-support-bot"
 
 echo "Testing ChatIQ API on localhost..."
@@ -21,4 +21,3 @@ curl -X POST http://localhost:3000/api/chat \
 
 echo ""
 echo "✅ If you see a JSON response, the API is working!"
-

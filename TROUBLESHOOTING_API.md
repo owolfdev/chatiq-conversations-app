@@ -11,7 +11,7 @@ If you're running the ChatIQ app locally:
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk_live_REDACTED" \
+  -H "Authorization: Bearer sk_live_REPLACE_ME" \
   -d '{
     "message": "Hello, can you tell me about your services?",
     "bot_slug": "owolf-dot-com-support-bot",
@@ -129,4 +129,3 @@ The `-v` flag will show you the full HTTP conversation including redirects.
 1. **If localhost works:** Your API is fine, just need to configure the production domain
 2. **If localhost fails:** Check that the app is running and the API route exists
 3. **If deployment URL works:** Update your documentation to use the correct URL
-

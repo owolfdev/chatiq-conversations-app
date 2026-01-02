@@ -3,7 +3,7 @@
 # Test ChatIQ API with correct URL (www.chatiq.io)
 # Note: chatiq.io redirects to www.chatiq.io
 
-API_KEY="sk_live_REDACTED"
+API_KEY="sk_live_REPLACE_ME"
 BOT_SLUG="owolf-dot-com-support-bot"
 
 echo "Testing ChatIQ API on www.chatiq.io..."
@@ -27,5 +27,4 @@ echo "⚠️  If you see 'Bot not found', check:"
 echo "   1. The bot slug is correct (check your dashboard)"
 echo "   2. The bot exists and is active"
 echo "   3. The API key has access to this bot"
-
 
