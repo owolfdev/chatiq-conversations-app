@@ -61,12 +61,6 @@ export async function proxyToMainApp(req: Request, path: string) {
     proxyHeaders.set("x-main-has-auth-cookie", authCookieName ? "true" : "false");
   }
 
-  if (process.env.MAIN_APP_PROXY_DEBUG === "true") {
-    proxyHeaders.set("x-main-target", targetUrl);
-    proxyHeaders.set("x-main-auth-forwarded", headers.has("authorization") ? "true" : "false");
-    proxyHeaders.set("x-main-has-session", hasSessionToken ? "true" : "false");
-  }
-
   return new NextResponse(response.body, {
     status: response.status,
     headers: proxyHeaders,
