@@ -10,12 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface FiltersSheetProps {
   open: boolean;
@@ -56,15 +51,26 @@ export function FiltersSheet({
 }: FiltersSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl">
-        <SheetHeader className="text-left">
-          <SheetTitle>Filters</SheetTitle>
-        </SheetHeader>
-        <div className="mt-4 grid gap-4">
-          <div>
-            <Label htmlFor="filter-bot">Bot</Label>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0"
+        showClose={false}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <Button variant="ghost" size="sm" onClick={onReset}>
+            Reset
+          </Button>
+          <Button size="sm" onClick={() => onOpenChange(false)}>
+            Done
+          </Button>
+        </div>
+        <div className="mt-3 grid gap-3 px-4 pb-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-bot" className="text-xs text-muted-foreground">
+              Bot
+            </Label>
             <Select value={selectedBot} onValueChange={onBotChange}>
-              <SelectTrigger id="filter-bot">
+              <SelectTrigger id="filter-bot" className="h-9">
                 <SelectValue placeholder="All bots" />
               </SelectTrigger>
               <SelectContent>
@@ -78,10 +84,10 @@ export function FiltersSheet({
             </Select>
           </div>
 
-          <div>
-            <Label>Topic</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Topic</Label>
             <Select value={selectedTopic} onValueChange={onTopicChange}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue placeholder="All topics" />
               </SelectTrigger>
               <SelectContent>
@@ -95,10 +101,10 @@ export function FiltersSheet({
             </Select>
           </div>
 
-          <div>
-            <Label>Status</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Status</Label>
             <Select value={selectedStatus} onValueChange={onStatusChange}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -109,10 +115,10 @@ export function FiltersSheet({
             </Select>
           </div>
 
-          <div>
-            <Label>Source</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Source</Label>
             <Select value={selectedSource} onValueChange={onSourceChange}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>
               <SelectContent>
@@ -126,23 +132,20 @@ export function FiltersSheet({
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="filter-detail">Detail search</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-detail" className="text-xs text-muted-foreground">
+              Detail search
+            </Label>
             <Input
               id="filter-detail"
               placeholder="Search detail"
               value={detailQuery}
+              className="h-9"
               onChange={(event) => onDetailQueryChange(event.target.value)}
             />
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <Button variant="ghost" onClick={onReset}>
-            Reset filters
-          </Button>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
-        </div>
       </SheetContent>
     </Sheet>
   );

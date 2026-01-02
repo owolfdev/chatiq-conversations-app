@@ -22,7 +22,6 @@ export default async function ConversationsPage() {
 
   const botContext = await getUserBotsWithCounts();
   const activeTeamId = botContext.team.id;
-  const activeTeamName = botContext.team.name;
 
   const conversations = await getConversations(activeTeamId);
   const teamBots = botContext.team.bots.map((bot) => ({
@@ -33,7 +32,6 @@ export default async function ConversationsPage() {
   return (
     <ConversationsList
       initialConversations={conversations}
-      teamName={activeTeamName}
       teamId={activeTeamId}
       initialBots={teamBots}
     />

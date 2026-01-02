@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import type { ConversationListItem } from "@/app/actions/conversations/get-conversations";
 
 interface ConversationListItemProps {
@@ -68,10 +69,10 @@ export function ConversationListItemCard({
   const { name, avatarUrl } = getCustomerProfile(conversation.source_detail);
   const statusLabel =
     conversation.resolution_status === "resolved" ? "Resolved" : "Open";
-  const statusDot =
+  const statusClass =
     conversation.resolution_status === "resolved"
-      ? "bg-emerald-500"
-      : "bg-amber-500";
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-amber-200 bg-amber-50 text-amber-900";
 
   return (
     <Link
@@ -79,33 +80,43 @@ export function ConversationListItemCard({
       className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
     >
       <div className="flex items-start gap-3">
-        <Avatar className="h-11 w-11">
+        <Avatar className="h-9 w-9">
           <AvatarImage src={avatarUrl || undefined} alt={name} />
           <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold">{name}</div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {formatTime(lastSeen)}
+          <div className="min-w-0">
+            <div className="truncate text-base font-semibold">{name}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${statusClass}`}
+              >
+                {statusLabel}
+              </Badge>
+              {conversation.source ? (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] capitalize text-muted-foreground"
+                >
+                  {conversation.source}
+                </Badge>
+              ) : null}
+              <Badge
+                variant="outline"
+                className="text-[10px] text-muted-foreground"
+              >
+                {formatTime(lastSeen)}
+              </Badge>
             </div>
           </div>
-          <div className="mt-2 text-sm font-medium text-foreground">
-            {conversation.topic || "General Inquiry"}
+          <div className="mt-2 text-xs font-medium text-foreground">
+            <span className="truncate">
+              {conversation.topic || "General Inquiry"}
+            </span>
           </div>
           <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {preview}
-          </div>
-          <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${statusDot}`} />
-              {statusLabel}
-            </span>
-            {conversation.source ? (
-              <span className="capitalize">{conversation.source}</span>
-            ) : null}
           </div>
         </div>
       </div>

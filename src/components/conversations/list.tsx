@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
@@ -9,24 +9,16 @@ import { getConversations } from "@/app/actions/conversations/get-conversations"
 import type { ConversationListItem } from "@/app/actions/conversations/get-conversations";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
-import { Filter, MoreHorizontal, RefreshCcw } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Filter, RefreshCcw } from "lucide-react";
 
 interface ConversationsListProps {
   initialConversations: ConversationListItem[];
-  teamName: string | null;
   teamId: string | null;
   initialBots: Array<{ id: string; name: string }>;
 }
 
 export function ConversationsList({
   initialConversations,
-  teamName,
   teamId,
   initialBots,
 }: ConversationsListProps) {
@@ -42,6 +34,7 @@ export function ConversationsList({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
   const sourceOptions = useMemo(() => {
     const available = Array.from(
@@ -58,9 +51,11 @@ export function ConversationsList({
     return [...CONVERSATION_SOURCE_OPTIONS, ...available];
   }, [conversations]);
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (silent = false) => {
     const botId = selectedBot === "all" ? null : selectedBot;
-    setIsLoading(true);
+    if (!silent) {
+      setIsLoading(true);
+    }
     try {
       const data = await getConversations(teamId, botId, {
         topic: selectedTopic === "all" ? null : selectedTopic,
@@ -74,7 +69,9 @@ export function ConversationsList({
       });
       setConversations(data);
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, [
     selectedBot,
@@ -104,10 +101,47 @@ export function ConversationsList({
     loadConversations();
   }, [loadConversations]);
 
+  useEffect(() => {
+    const startPolling = () => {
+      if (pollingRef.current !== null) {
+        return;
+      }
+      pollingRef.current = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          loadConversations(true);
+        }
+      }, 8000);
+    };
+
+    const stopPolling = () => {
+      if (pollingRef.current !== null) {
+        window.clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadConversations(true);
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    handleVisibilityChange();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadConversations]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await loadConversations();
+      await loadConversations(true);
     } finally {
       setIsRefreshing(false);
     }
@@ -124,63 +158,31 @@ export function ConversationsList({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-lg font-semibold">Inbox</h1>
-            <p className="text-xs text-muted-foreground">
-              {teamName ? `Team ${teamName}` : "Conversations"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFiltersOpen(true)}
-              aria-label="Open filters"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="More actions">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    handleRefresh();
-                  }}
-                  disabled={isRefreshing}
-                >
-                  <RefreshCcw
-                    className={`mr-2 h-4 w-4 ${
-                      isRefreshing ? "animate-spin" : ""
-                    }`}
-                  />
-                  Refresh
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    setFiltersOpen(true);
-                  }}
-                >
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filters
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
+      <div className="flex items-center gap-2">
         <Input
           placeholder="Search customer"
           value={userQuery}
           onChange={(event) => setUserQuery(event.target.value)}
         />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Open filters"
+          onClick={() => setFiltersOpen(true)}
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Refresh list"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCcw
+            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+        </Button>
       </div>
 
       <div className="mt-6 space-y-4">
