@@ -106,7 +106,7 @@ export default function UserMenu({ name }: UserMenuProps) {
     await supabase.auth.signOut();
     setDialogOpen(false);
     setTimeout(() => {
-      window.location.href = "/sign-in?redirect=/dashboard";
+      window.location.href = "/sign-in?redirect=/conversations";
     }, 50);
   };
 
@@ -160,7 +160,7 @@ export default function UserMenu({ name }: UserMenuProps) {
             <Link href={toAppHref("/profile")}>Profile</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={toAppHref("/dashboard")}>Dashboard</Link>
+            <Link href={toAppHref("/conversations")}>Conversations</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/contact">Support</Link>

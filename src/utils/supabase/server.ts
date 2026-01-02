@@ -19,7 +19,10 @@ export const createClient = async () => {
           try {
             if (typeof cookieStore.set !== "function") return;
             for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, {
+                ...(options ?? {}),
+                domain: ".chatiq.io",
+              });
             }
           } catch (error) {
             // The `set` method was called from a Server Component.

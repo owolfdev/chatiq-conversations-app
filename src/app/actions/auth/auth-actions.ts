@@ -66,7 +66,7 @@ export const signInAction = async (formData: FormData) => {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
-  return redirect("/dashboard");
+  return redirect("/conversations");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -171,5 +171,5 @@ export const signInWithMagicLinkAction = async (formData: FormData) => {
 export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return redirect("/sign-in?redirect=/dashboard");
+  return redirect("/sign-in?redirect=/conversations");
 };

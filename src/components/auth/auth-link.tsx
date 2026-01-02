@@ -10,7 +10,7 @@ export function AuthLink({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     getUser().then((user) => {
-      if (user) setHref("/dashboard");
+      if (user) setHref("/conversations");
     });
   }, []);
 

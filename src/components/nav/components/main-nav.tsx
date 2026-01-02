@@ -38,22 +38,24 @@ export default function MainNav({ user, logout, isAppHost = false }: MainNavProp
   }));
 
   const appLinks = [
-    ...(pathname === "/dashboard" ? [] : [{ href: "/dashboard", label: "Dashboard" }]),
+    ...(pathname === "/conversations"
+      ? []
+      : [{ href: "/conversations", label: "Conversations" }]),
     { href: "/docs", label: "Docs" },
   ];
 
   const links = isAppHost
     ? user
       ? appLinks
-      : [...siteLinksForHost, { href: "/dashboard", label: "Dashboard" }]
-    : [...siteLinks, { href: toAppHref("/dashboard"), label: "Dashboard" }];
+      : [...siteLinksForHost, { href: "/conversations", label: "Conversations" }]
+    : [...siteLinks, { href: toAppHref("/conversations"), label: "Conversations" }];
 
   return (
     <header className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <nav className="flex items-center justify-between h-16">
           <div className="flex items-center w-full gap-8">
-            <Link href={isAppHost ? "/dashboard" : "/"} className="flex items-center gap-2">
+            <Link href={isAppHost ? "/conversations" : "/"} className="flex items-center gap-2">
               <Bot className="h-6 w-6 text-emerald-500" />
               <span className="font-bold text-xl">ChatIQ</span>
               <BetaIndicator />

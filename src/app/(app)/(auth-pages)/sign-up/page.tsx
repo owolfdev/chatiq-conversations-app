@@ -24,7 +24,7 @@ export default async function Signup(props: {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect("/dashboard");
+    redirect("/conversations");
   }
 
   const params = await props.searchParams;

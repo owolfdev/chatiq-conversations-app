@@ -135,10 +135,10 @@ export default async function Footer() {
                 </Link>
               ))}
               <Link
-                href={toAppHref("/dashboard")}
+                href={toAppHref("/conversations")}
                 className="transition-colors hover:text-emerald-500"
               >
-                Dashboard
+                Conversations
               </Link>
             </div>
           </div>

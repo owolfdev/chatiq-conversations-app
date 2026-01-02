@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   }
 
   // URL to redirect to after sign in/sign up process completes
-  const finalRedirect = `${origin}/dashboard`;
+  const finalRedirect = `${origin}/conversations`;
   console.log("[auth/callback] Final redirect to:", finalRedirect);
   return NextResponse.redirect(finalRedirect);
 }

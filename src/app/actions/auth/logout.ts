@@ -7,5 +7,5 @@ import { redirect } from "next/navigation";
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/sign-in?redirect=/dashboard");
+  redirect("/sign-in?redirect=/conversations");
 }
