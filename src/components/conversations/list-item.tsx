@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import type { ConversationListItem } from "@/app/actions/conversations/get-conversations";
+import type { ConversationListItem } from "@/types/conversations";
 
 interface ConversationListItemProps {
   conversation: ConversationListItem;

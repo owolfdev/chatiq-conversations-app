@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { ConversationsTopBar } from "@/components/conversations/top-bar";
+import { InstallBanner } from "@/components/pwa/install-banner";
 
 export const metadata: Metadata = {
   robots: {
@@ -23,6 +24,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <ConversationsTopBar showUserMenu={hasSession} />
+      <InstallBanner />
       <div className="flex-1">{children}</div>
     </div>
   );

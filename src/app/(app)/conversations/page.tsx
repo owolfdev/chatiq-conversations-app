@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getConversations } from "@/app/actions/conversations/get-conversations";
 import { getUserBotsWithCounts } from "@/app/actions/bots/get-user-bots-with-counts";
 import { ConversationsList } from "@/components/conversations/list";
 
@@ -21,9 +20,6 @@ export default async function ConversationsPage() {
   }
 
   const botContext = await getUserBotsWithCounts();
-  const activeTeamId = botContext.team.id;
-
-  const conversations = await getConversations(activeTeamId);
   const teamBots = botContext.team.bots.map((bot) => ({
     id: bot.id,
     name: bot.name,
@@ -31,8 +27,7 @@ export default async function ConversationsPage() {
 
   return (
     <ConversationsList
-      initialConversations={conversations}
-      teamId={activeTeamId}
+      initialConversations={[]}
       initialBots={teamBots}
     />
   );

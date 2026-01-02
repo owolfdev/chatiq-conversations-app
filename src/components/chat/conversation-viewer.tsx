@@ -133,7 +133,8 @@ export function ConversationViewer({
     setIsExporting(true);
     try {
       const response = await fetch(
-        `/api/conversations/${conversationId}/export?format=${format}`
+        `/api/conversations/${conversationId}/export?format=${format}`,
+        { credentials: "include" }
       );
       if (!response.ok) {
         throw new Error("Export failed");
@@ -200,6 +201,15 @@ export function ConversationViewer({
     localMessages.length > 0
       ? localMessages[localMessages.length - 1]?.createdAt
       : null;
+  const [standalone, setStandalone] = useState(true);
+
+  useEffect(() => {
+    const isStandaloneDisplay =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ?? false;
+    const isIosStandalone =
+      "standalone" in navigator && (navigator as any).standalone;
+    setStandalone(Boolean(isStandaloneDisplay || isIosStandalone));
+  }, []);
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -353,7 +363,8 @@ export function ConversationViewer({
     const fetchMessages = async () => {
       try {
         const response = await fetch(
-          `/api/conversations/${conversationId}/messages`
+          `/api/conversations/${conversationId}/messages`,
+          { credentials: "include" }
         );
         if (!response.ok) {
           return;
@@ -441,13 +452,14 @@ export function ConversationViewer({
       const isLineConversation = conversationSource === "line";
       const response = await fetch(
         isLineConversation
-          ? "/api/integrations/line/send"
+          ? `/api/integrations/line/send`
           : `/api/conversations/${conversationId}/messages`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify(
             isLineConversation
               ? {
@@ -498,6 +510,7 @@ export function ConversationViewer({
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ enabled }),
         }
       );
@@ -540,6 +553,7 @@ export function ConversationViewer({
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ status: nextStatus }),
         }
       );
@@ -574,6 +588,7 @@ export function ConversationViewer({
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ topic: nextTopic }),
         }
       );
@@ -633,38 +648,42 @@ export function ConversationViewer({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    handleExport("json");
-                  }}
-                  disabled={isExporting}
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    handleExport("csv");
-                  }}
-                  disabled={isExporting}
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    setShowDeleteDialog(true);
-                  }}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault();
+                if (!standalone) return;
+                handleExport("json");
+              }}
+              disabled={isExporting || !standalone}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Export JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault();
+                if (!standalone) return;
+                handleExport("csv");
+              }}
+              disabled={isExporting || !standalone}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Export CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault();
+                if (!standalone) return;
+                setShowDeleteDialog(true);
+              }}
+              className="text-destructive"
+              disabled={!standalone}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
           </div>
         </div>
 
@@ -681,6 +700,11 @@ export function ConversationViewer({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-3 space-y-3">
+          {!standalone && (
+            <div className="rounded-xl border border-dashed border-muted px-3 py-2 text-xs text-muted-foreground">
+              Install the app to reply, take over, or edit this conversation.
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>Created {formatDate(createdAt)}</span>
             <span>
@@ -692,7 +716,7 @@ export function ConversationViewer({
               variant="outline"
               size="sm"
               onClick={handleStatusToggle}
-              disabled={statusUpdating}
+              disabled={statusUpdating || !standalone}
             >
               {statusUpdating ? "Updating..." : statusToggleLabel}
             </Button>
@@ -700,7 +724,7 @@ export function ConversationViewer({
               <Select
                 value={topic}
                 onValueChange={handleTopicChange}
-                disabled={topicUpdating}
+                disabled={topicUpdating || !standalone}
               >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select topic" />
@@ -760,7 +784,7 @@ export function ConversationViewer({
                     variant={takeoverActive ? "outline" : "default"}
                     size="sm"
                     onClick={() => handleTakeoverToggle(!takeoverActive)}
-                    disabled={takeoverUpdating}
+                    disabled={takeoverUpdating || !standalone}
                   >
                     {takeoverUpdating
                       ? "Updating..."
@@ -878,9 +902,12 @@ export function ConversationViewer({
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   placeholder="Reply as human..."
-                  disabled={sending}
+                  disabled={sending || !standalone}
                 />
-                <Button type="submit" disabled={sending || !draft.trim()}>
+                <Button
+                  type="submit"
+                  disabled={sending || !draft.trim() || !standalone}
+                >
                   {sending ? "Sending..." : "Send"}
                 </Button>
               </form>

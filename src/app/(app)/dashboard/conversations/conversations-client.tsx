@@ -44,8 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ConversationListItem } from "@/app/actions/conversations/get-conversations";
-import { getConversations } from "@/app/actions/conversations/get-conversations";
+import type { ConversationListItem } from "@/types/conversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 
@@ -89,26 +88,47 @@ export default function ConversationsClient({
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const loadConversations = useCallback(async () => {
-    const botId = selectedBot === "all" ? null : selectedBot;
     setIsLoading(true);
     try {
-      const data = await getConversations(teamId, botId, {
-        topic: selectedTopic === "all" ? null : selectedTopic,
-        status:
-          selectedStatus === "all"
-            ? "all"
-            : (selectedStatus as "resolved" | "unresolved"),
-      source: selectedSource === "all" ? null : selectedSource,
-      userQuery: debouncedUserQuery,
-      detailQuery: debouncedDetailQuery,
-      sortBy,
-      sortDir,
-    });
-      setConversations(data);
+      const params = new URLSearchParams();
+      params.set("limit", "50");
+      if (selectedBot !== "all") {
+        params.set("botId", selectedBot);
+      }
+      if (selectedTopic !== "all") {
+        params.set("topic", selectedTopic);
+      }
+      if (selectedStatus !== "all") {
+        params.set("status", selectedStatus);
+      }
+      if (selectedSource !== "all") {
+        params.set("source", selectedSource);
+      }
+      if (debouncedUserQuery.trim()) {
+        params.set("userQuery", debouncedUserQuery.trim());
+      }
+      if (debouncedDetailQuery.trim()) {
+        params.set("detailQuery", debouncedDetailQuery.trim());
+      }
+      params.set("sortBy", sortBy);
+      params.set("sortDir", sortDir);
+
+      const response = await fetch(
+        `/api/conversations?${params.toString()}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch conversations.");
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        conversations?: ConversationListItem[];
+      } | null;
+      setConversations(payload?.conversations ?? []);
     } finally {
       setIsLoading(false);
     }
   }, [
+    mainAppUrl,
     selectedBot,
     selectedTopic,
     selectedStatus,
@@ -117,7 +137,6 @@ export default function ConversationsClient({
     debouncedDetailQuery,
     sortBy,
     sortDir,
-    teamId,
   ]);
 
   useEffect(() => {
@@ -173,7 +192,8 @@ export default function ConversationsClient({
       }
 
       const response = await fetch(
-        `/api/conversations/export?${params.toString()}`
+        `/api/conversations/export?${params.toString()}`,
+        { credentials: "include" }
       );
       if (!response.ok) {
         throw new Error("Export failed");
@@ -301,7 +321,8 @@ export default function ConversationsClient({
   ) => {
     try {
       const response = await fetch(
-        `/api/conversations/${conversationId}/export?format=${format}`
+        `/api/conversations/${conversationId}/export?format=${format}`,
+        { credentials: "include" }
       );
       if (!response.ok) {
         throw new Error("Export failed");
@@ -329,11 +350,12 @@ export default function ConversationsClient({
     if (selectedIds.size === 0) return;
     setIsExportingSelected(true);
     try {
-      const response = await fetch("/api/conversations/export-selected", {
+      const response = await fetch(`/api/conversations/export-selected`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           format,
           conversationIds: Array.from(selectedIds),

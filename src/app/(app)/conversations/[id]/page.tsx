@@ -17,10 +17,11 @@ export default async function ConversationPage({
 }: ConversationPageProps) {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (authError || !user) {
     redirect("/sign-in?redirect=/conversations");
   }
 
@@ -50,7 +51,7 @@ export default async function ConversationPage({
     .from("bot_team_members")
     .select("id")
     .eq("team_id", bot.team_id)
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   const { data: team } = await supabase
@@ -59,7 +60,7 @@ export default async function ConversationPage({
     .eq("id", bot.team_id)
     .maybeSingle();
 
-  const isTeamMember = !!membership || team?.owner_id === session.user.id;
+  const isTeamMember = !!membership || team?.owner_id === user.id;
   if (!isTeamMember) {
     notFound();
   }

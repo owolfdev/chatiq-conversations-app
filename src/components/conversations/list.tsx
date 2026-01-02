@@ -5,21 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
 import { ConversationListItemCard } from "@/components/conversations/list-item";
-import { getConversations } from "@/app/actions/conversations/get-conversations";
-import type { ConversationListItem } from "@/app/actions/conversations/get-conversations";
+import type { ConversationListItem } from "@/types/conversations";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 import { Filter, RefreshCcw } from "lucide-react";
 
 interface ConversationsListProps {
   initialConversations: ConversationListItem[];
-  teamId: string | null;
   initialBots: Array<{ id: string; name: string }>;
 }
 
 export function ConversationsList({
   initialConversations,
-  teamId,
   initialBots,
 }: ConversationsListProps) {
   const [conversations, setConversations] = useState(initialConversations);
@@ -52,22 +49,42 @@ export function ConversationsList({
   }, [conversations]);
 
   const loadConversations = useCallback(async (silent = false) => {
-    const botId = selectedBot === "all" ? null : selectedBot;
+    const params = new URLSearchParams();
+    params.set("limit", "50");
+    params.set("sortBy", "last_message_at");
+    params.set("sortDir", "desc");
+    if (selectedBot !== "all") {
+      params.set("botId", selectedBot);
+    }
+    if (selectedTopic !== "all") {
+      params.set("topic", selectedTopic);
+    }
+    if (selectedStatus !== "all") {
+      params.set("status", selectedStatus);
+    }
+    if (selectedSource !== "all") {
+      params.set("source", selectedSource);
+    }
+    if (debouncedUserQuery.trim()) {
+      params.set("userQuery", debouncedUserQuery.trim());
+    }
+    if (debouncedDetailQuery.trim()) {
+      params.set("detailQuery", debouncedDetailQuery.trim());
+    }
     if (!silent) {
       setIsLoading(true);
     }
     try {
-      const data = await getConversations(teamId, botId, {
-        topic: selectedTopic === "all" ? null : selectedTopic,
-        status:
-          selectedStatus === "all"
-            ? "all"
-            : (selectedStatus as "resolved" | "unresolved"),
-        source: selectedSource === "all" ? null : selectedSource,
-        userQuery: debouncedUserQuery,
-        detailQuery: debouncedDetailQuery,
+      const response = await fetch(`/api/conversations?${params.toString()}`, {
+        credentials: "include",
       });
-      setConversations(data);
+      if (!response.ok) {
+        throw new Error("Failed to fetch conversations.");
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        conversations?: ConversationListItem[];
+      } | null;
+      setConversations(payload?.conversations ?? []);
     } finally {
       if (!silent) {
         setIsLoading(false);
@@ -80,7 +97,6 @@ export function ConversationsList({
     selectedSource,
     debouncedUserQuery,
     debouncedDetailQuery,
-    teamId,
   ]);
 
   useEffect(() => {

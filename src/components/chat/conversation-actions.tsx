@@ -45,7 +45,8 @@ export function ConversationActions({
     setIsExporting(true);
     try {
       const response = await fetch(
-        `/api/conversations/${conversationId}/export?format=${exportFormat}`
+        `/api/conversations/${conversationId}/export?format=${exportFormat}`,
+        { credentials: "include" }
       );
       if (!response.ok) {
         throw new Error("Export failed");
@@ -150,4 +151,3 @@ export function ConversationActions({
     </>
   );
 }
-
