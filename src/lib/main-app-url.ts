@@ -1,4 +1,4 @@
-const DEFAULT_MAIN_APP_URL = "https://chatiq.io";
+const DEFAULT_MAIN_APP_URL = "https://www.chatiq.io";
 
 export const getMainAppUrl = () => {
   const raw = process.env.NEXT_PUBLIC_MAIN_APP_URL;
