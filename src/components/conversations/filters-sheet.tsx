@@ -16,7 +16,7 @@ interface FiltersSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bots: Array<{ id: string; name: string }>;
-  topics: string[];
+  topics: readonly string[];
   sources: Array<{ value: string; label: string }>;
   selectedBot: string;
   onBotChange: (value: string) => void;
