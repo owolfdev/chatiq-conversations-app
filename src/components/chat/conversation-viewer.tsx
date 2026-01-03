@@ -713,7 +713,7 @@ export function ConversationViewer({
               </div>
               <form
                 onSubmit={handleSend}
-                className="border-t border-border pt-3 mt-0 flex items-center gap-2 shrink-0 bg-background px-4"
+                className="border-t border-border pt-3 pb-3 mt-0 flex items-center gap-2 shrink-0 bg-background px-4"
               >
                 <Input
                   ref={inputRef}
