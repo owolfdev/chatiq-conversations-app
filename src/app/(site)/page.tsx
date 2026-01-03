@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
 import { getAppUrl } from "@/lib/email/get-app-url";
+import { InstallCta } from "@/components/pwa/install-cta";
 
 const appUrl = getAppUrl();
 
@@ -54,6 +55,16 @@ export default async function HomePage() {
           A dedicated, mobile-first view of active customer conversations. Jump
           straight into the threads that need you.
         </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          ChatIQ Inbox is a PWA intended to be used after installation.{" "}
+          <Link
+            href="/install"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            View install steps
+          </Link>
+          .
+        </p>
         <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
           <Button
             asChild
@@ -62,6 +73,7 @@ export default async function HomePage() {
           >
             <Link href={conversationsHref}>Open Conversations</Link>
           </Button>
+          <InstallCta />
         </div>
       </section>
     </main>

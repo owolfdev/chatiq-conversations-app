@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "ChatIQ Inbox",
+    title: "Inbox",
     statusBarStyle: "black-translucent",
   },
   icons: {

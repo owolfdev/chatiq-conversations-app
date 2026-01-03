@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
@@ -21,6 +22,7 @@ export function ConversationsList({
   initialConversations,
   initialBots,
 }: ConversationsListProps) {
+  const [standalone, setStandalone] = useState<boolean | null>(null);
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedBot, setSelectedBot] = useState("all");
   const [selectedTopic, setSelectedTopic] = useState("all");
@@ -100,6 +102,13 @@ export function ConversationsList({
     debouncedUserQuery,
     debouncedDetailQuery,
   ]);
+
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ?? false;
+    const isIosStandalone = "standalone" in navigator && (navigator as any).standalone;
+    setStandalone(Boolean(isStandalone || isIosStandalone));
+  }, []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -187,6 +196,20 @@ export function ConversationsList({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
+      {standalone === false ? (
+        <div className="mb-4 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">ChatIQ Inbox is a PWA.</span>{" "}
+          Install it to run like a native app with the best performance and
+          offline-friendly behavior.{" "}
+          <Link
+            href="/install"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            View install steps
+          </Link>
+          .
+        </div>
+      ) : null}
       <div className="flex items-center gap-2">
         <Input
           placeholder="Search customer"

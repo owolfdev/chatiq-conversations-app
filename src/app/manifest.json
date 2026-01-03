@@ -1,6 +1,6 @@
 {
-  "name": "ChatIQ Inbox",
-  "short_name": "ChatIQ Inbox",
+  "name": "Inbox",
+  "short_name": "Inbox",
   "description": "A focused conversations inbox for ChatIQ",
   "start_url": "/",
   "display": "standalone",
