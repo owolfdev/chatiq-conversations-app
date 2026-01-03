@@ -634,7 +634,7 @@ export function ConversationViewer({
                         )}
                         <div
                           className={cn(
-                            "max-w-[75%] rounded-2xl px-4 py-2 text-sm md:text-base shadow-sm",
+                            "max-w-[75%] rounded-2xl px-4 py-2 text-lg md:text-xl shadow-sm",
                             isUser
                               ? "bg-white text-zinc-900"
                               : "bg-emerald-100 text-emerald-950"
@@ -716,7 +716,7 @@ export function ConversationViewer({
                       )}
                       <div
                         className={cn(
-                          "max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                          "max-w-[75%] rounded-2xl px-4 py-2 text-lg shadow-sm",
                           isUser
                             ? "bg-emerald-500/90 text-emerald-50"
                             : "bg-zinc-700/90 text-zinc-50"

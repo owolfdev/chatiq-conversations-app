@@ -2,7 +2,7 @@
   "name": "Inbox",
   "short_name": "Inbox",
   "description": "A focused conversations inbox for ChatIQ",
-  "start_url": "/",
+  "start_url": "/conversations",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#10b981",
