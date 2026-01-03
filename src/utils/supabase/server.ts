@@ -2,9 +2,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
+import { getCookieDomain } from "@/utils/supabase/cookie-domain";
 
 export const createClient = async () => {
   const cookieStore = await cookies();
+  const cookieDomain = getCookieDomain({ appUrl: env.NEXT_PUBLIC_APP_URL });
 
   // Use validated env vars
   return createServerClient(
@@ -21,7 +23,7 @@ export const createClient = async () => {
             for (const { name, value, options } of cookiesToSet) {
               cookieStore.set(name, value, {
                 ...(options ?? {}),
-                domain: ".chatiq.io",
+                ...(cookieDomain ? { domain: cookieDomain } : {}),
               });
             }
           } catch (error) {

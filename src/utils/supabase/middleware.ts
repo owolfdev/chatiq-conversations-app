@@ -2,6 +2,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { isBetaModeEnabled, isEmailAllowed } from "@/lib/beta-access";
+import { getCookieDomain } from "@/utils/supabase/cookie-domain";
 
 // Access environment variables directly to avoid validation errors in middleware
 function getSupabaseConfig() {
@@ -38,6 +39,10 @@ export const updateSession = async (request: NextRequest) => {
       );
     }
 
+    const cookieDomain = getCookieDomain({
+      hostname: request.nextUrl.hostname,
+    });
+
     const supabase = createServerClient(url, clientKey, {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -45,7 +50,7 @@ export const updateSession = async (request: NextRequest) => {
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, {
               ...(options ?? {}),
-              domain: ".chatiq.io",
+              ...(cookieDomain ? { domain: cookieDomain } : {}),
             });
           }
         },
