@@ -71,6 +71,7 @@ export function ConversationViewer({
   const inputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(localMessages.length);
   const optimisticIdsRef = useRef<Set<string>>(new Set());
+  const autoScrollRef = useRef(true);
   const recentOptimisticRef = useRef<{
     content: string;
     role: ChatMessage["role"];
@@ -139,6 +140,9 @@ export function ConversationViewer({
       return;
     }
     if (scrollRef.current) {
+      if (!autoScrollRef.current) {
+        return;
+      }
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [interactive, localMessages]);
@@ -209,7 +213,18 @@ export function ConversationViewer({
             if (optimisticIdsRef.current.has(optimistic.createdAt)) {
               optimisticIdsRef.current.delete(optimistic.createdAt);
               setLocalMessages((prev) =>
-                prev.filter((msg) => msg.createdAt !== optimistic.createdAt)
+                prev.map((msg) => {
+                  if (msg.createdAt !== optimistic.createdAt) {
+                    return msg;
+                  }
+                  return {
+                    ...msg,
+                    id: row.id,
+                    createdAt: row.created_at,
+                    content,
+                    role: role as ChatMessage["role"],
+                  };
+                })
               );
             }
             return;
@@ -356,6 +371,7 @@ export function ConversationViewer({
     };
     setSending(true);
     setDraft("");
+    inputRef.current?.focus();
     setLocalMessages((prev) => [
       ...prev,
       {
@@ -608,6 +624,16 @@ export function ConversationViewer({
               <div
                 ref={scrollRef}
                 className="flex-1 overflow-y-auto flex flex-col gap-3 px-2 py-3"
+                onScroll={() => {
+                  const container = scrollRef.current;
+                  if (!container) return;
+                  const nearBottom =
+                    container.scrollHeight -
+                      container.scrollTop -
+                      container.clientHeight <=
+                    80;
+                  autoScrollRef.current = nearBottom;
+                }}
               >
                 {localMessages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
@@ -679,7 +705,7 @@ export function ConversationViewer({
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   placeholder="Reply as human..."
-                  disabled={sending || !standalone}
+                  disabled={!standalone}
                 />
                 <Button
                   type="submit"
