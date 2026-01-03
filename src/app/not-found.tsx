@@ -10,7 +10,7 @@ export default function NotFound() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Bot className="h-8 w-8 text-emerald-500" />
-          <span className="font-bold text-2xl">ChatIQ</span>
+          <span className="font-bold text-2xl">ChatIQ Inbox</span>
         </div>
 
         {/* 404 Heading */}

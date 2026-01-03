@@ -1,7 +1,7 @@
 {
-  "name": "ChatIQ",
-  "short_name": "ChatIQ",
-  "description": "Custom AI chatbots built in minutes",
+  "name": "ChatIQ Inbox",
+  "short_name": "ChatIQ Inbox",
+  "description": "A focused conversations inbox for ChatIQ",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

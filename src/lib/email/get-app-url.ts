@@ -19,5 +19,5 @@ export function getAppUrl(): string {
   }
 
   // Always prefer production URL when no suitable env is provided
-  return "https://www.chatiq.io";
+  return "https://inbox.chatiq.io";
 }

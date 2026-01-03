@@ -1,3 +1,3 @@
-Chatiq conversations
+ChatIQ Inbox
 
 pwa

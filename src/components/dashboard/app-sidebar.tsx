@@ -92,7 +92,7 @@ export function AppSidebar() {
             <Bot className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">ChatIQ</span>
+            <span className="text-sm font-semibold">ChatIQ Inbox</span>
             <span className="text-xs text-muted-foreground">Dashboard</span>
           </div>
         </div>

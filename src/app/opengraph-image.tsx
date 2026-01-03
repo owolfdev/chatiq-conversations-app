@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Image metadata
-export const alt = "ChatIQ - Train on your content. Embed anywhere.";
+export const alt = "ChatIQ Inbox - Conversations inbox for ChatIQ.";
 export const size = {
   width: 1200,
   height: 630,
@@ -97,7 +97,7 @@ export default async function Image() {
               textAlign: "center",
             }}
           >
-            ChatIQ
+            ChatIQ Inbox
           </div>
 
           {/* Subtitle */}
@@ -111,7 +111,7 @@ export default async function Image() {
               lineHeight: 1.4,
             }}
           >
-            Train on your content. Embed anywhere.
+            Conversations inbox for ChatIQ.
           </div>
 
           {/* Accent line */}

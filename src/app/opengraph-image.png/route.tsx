@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export const runtime = "nodejs";
-export const alt = "ChatIQ - Train on your content. Embed anywhere.";
+export const alt = "ChatIQ Inbox - Conversations inbox for ChatIQ.";
 export const size = {
   width: 1200,
   height: 630,
@@ -92,7 +92,7 @@ export async function GET() {
               textAlign: "center",
             }}
           >
-            ChatIQ
+            ChatIQ Inbox
           </div>
 
           {/* Subtitle */}
@@ -106,7 +106,7 @@ export async function GET() {
               lineHeight: 1.4,
             }}
           >
-            Train on your content. Embed anywhere.
+            Conversations inbox for ChatIQ.
           </div>
 
           {/* Accent line */}

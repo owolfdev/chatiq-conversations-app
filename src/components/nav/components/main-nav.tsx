@@ -1,151 +1,67 @@
 // src/components/nav/components/main-nav.tsx
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Bot, Menu, X } from "lucide-react";
+import { Bot, Home, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import UserMenu from "./user-menu";
-import { BetaIndicator } from "./beta-indicator";
+import { UserMenu as ConversationsUserMenu } from "@/components/conversations/user-menu";
 
 interface MainNavProps {
   user?: { name?: string } | null;
-  logout?: () => void;
-  isAppHost?: boolean;
 }
 
-export default function MainNav({ user, logout, isAppHost = false }: MainNavProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export default function MainNav({ user }: MainNavProps) {
   const pathname = usePathname();
-
-  const toAppHref = (path: string) => path;
-
-  const siteLinks = [
-    { href: "/#features", label: "Features" },
-    { href: "/#pricing", label: "Pricing" },
-    { href: "/#demo", label: "Demo" },
-    { href: "/blog", label: "Blog" },
-    { href: "/docs", label: "Docs" },
-    { href: "/contact", label: "Contact" },
+  const links = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/conversations", label: "Conversations", icon: MessageSquare },
   ];
-
-  const toSiteHref = (href: string) => href;
-
-  const siteLinksForHost = siteLinks.map((link) => ({
-    ...link,
-    href: toSiteHref(link.href),
-  }));
-
-  const appLinks = [
-    ...(pathname === "/conversations"
-      ? []
-      : [{ href: "/conversations", label: "Conversations" }]),
-    { href: "/docs", label: "Docs" },
-  ];
-
-  const links = isAppHost
-    ? user
-      ? appLinks
-      : [...siteLinksForHost, { href: "/conversations", label: "Conversations" }]
-    : [...siteLinks, { href: toAppHref("/conversations"), label: "Conversations" }];
 
   return (
     <header className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
-        <nav className="flex items-center justify-between h-16">
-          <div className="flex items-center w-full gap-8">
-            <Link href={isAppHost ? "/conversations" : "/"} className="flex items-center gap-2">
+        <nav className="grid h-16 items-center gap-2 grid-cols-[1fr_auto_1fr]">
+          <div className="flex items-center justify-start">
+            <Link href="/" className="flex items-center gap-2">
               <Bot className="h-6 w-6 text-emerald-500" />
-              <span className="font-bold text-xl">ChatIQ</span>
-              <BetaIndicator />
+              <span className="font-bold text-xl">Inbox</span>
             </Link>
-            <div className="hidden md:flex items-center space-x-8">
-              {links.map(({ href, label }) => (
+          </div>
+          <div className="flex items-center justify-center gap-5">
+            {links.map(({ href, label, icon: Icon }) => {
+              const isActive =
+                href === "/"
+                  ? pathname === "/"
+                  : pathname === href || pathname?.startsWith(`${href}/`);
+              return (
                 <Link
                   key={label}
                   href={href}
-                  className="text-muted-foreground hover:text-emerald-500 transition-colors"
+                  aria-label={label}
+                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-emerald-600"
+                      : "text-muted-foreground hover:text-emerald-500"
+                  }`}
                 >
-                  {label}
+                  <Icon className="h-4 w-4" />
+                  <span className="sr-only">{label}</span>
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="flex items-center justify-end gap-3">
             {user ? (
-              <UserMenu name={user.name} />
+              <ConversationsUserMenu />
             ) : (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link href={toAppHref("/sign-in")}>Sign in</Link>
-                </Button>
-                <Button className="bg-emerald-500 hover:bg-emerald-600" asChild>
-                  <Link href={toAppHref("/sign-up")}>
-                    Sign up
-                  </Link>
-                </Button>
-              </>
+              <Button variant="ghost" asChild>
+                <Link href="/sign-in">Sign in</Link>
+              </Button>
             )}
           </div>
-
-          <button
-            type="button"
-            className="md:hidden text-muted-foreground hover:text-emerald-500"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
         </nav>
       </div>
-
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-muted border-b border-border">
-          <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-            {links.map(({ href, label }) => (
-              <Link
-                key={label}
-                href={href}
-                className="text-muted-foreground hover:text-emerald-500 transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {label}
-              </Link>
-            ))}
-            <div className="flex flex-col space-y-2 pt-2 border-t border-border">
-              {user && logout ? (
-                <form action={logout}>
-                  <Button
-                    variant="ghost"
-                    className="justify-start w-full"
-                    type="submit"
-                  >
-                    Sign out
-                  </Button>
-                </form>
-              ) : (
-                <>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <Link href={toAppHref("/sign-in")}>Sign in</Link>
-                  </Button>
-                  <Button
-                    className="bg-emerald-500 hover:bg-emerald-600"
-                    asChild
-                  >
-                    <Link href={toAppHref("/sign-up")}>
-                      Sign up
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

@@ -8,21 +8,21 @@ import { getAppUrl } from "@/lib/email/get-app-url";
 const appUrl = getAppUrl();
 
 export const metadata: Metadata = {
-  title: { absolute: "Conversations | ChatIQ" },
+  title: { absolute: "ChatIQ Inbox" },
   description: "A focused conversations inbox for ChatIQ.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Conversations | ChatIQ",
+    title: "ChatIQ Inbox",
     description: "A focused conversations inbox for ChatIQ.",
     url: `${appUrl}/`,
-    siteName: "ChatIQ",
+    siteName: "ChatIQ Inbox",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Conversations | ChatIQ",
+    title: "ChatIQ Inbox",
     description: "A focused conversations inbox for ChatIQ.",
   },
 };

@@ -28,36 +28,36 @@ const appUrl = getAppUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: "ChatIQ",
-    template: "%s | ChatIQ",
+    default: "ChatIQ Inbox",
+    template: "%s | ChatIQ Inbox",
   },
-  description: "ChatIQ – custom AI chatbots built in minutes",
+  description: "ChatIQ Inbox - a focused conversations inbox for ChatIQ",
   manifest: "/manifest.json",
   openGraph: {
-    title: "ChatIQ",
-    description: "ChatIQ – custom AI chatbots built in minutes",
+    title: "ChatIQ Inbox",
+    description: "ChatIQ Inbox - a focused conversations inbox for ChatIQ",
     type: "website",
-    siteName: "ChatIQ",
+    siteName: "ChatIQ Inbox",
     url: appUrl,
     images: [
       {
         url: `${appUrl}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "ChatIQ - Train on your content. Embed anywhere.",
+        alt: "ChatIQ Inbox - Conversations inbox for ChatIQ.",
       },
       {
         url: `${appUrl}/api/og-image`,
         width: 1200,
         height: 630,
-        alt: "ChatIQ - Train on your content. Embed anywhere.",
+        alt: "ChatIQ Inbox - Conversations inbox for ChatIQ.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChatIQ",
-    description: "ChatIQ – custom AI chatbots built in minutes",
+    title: "ChatIQ Inbox",
+    description: "ChatIQ Inbox - a focused conversations inbox for ChatIQ",
     images: [
       `${appUrl}/og-image.png`,
       `${appUrl}/api/og-image`,

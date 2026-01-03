@@ -18,7 +18,7 @@ import { XLogo } from "@/components/icons/XLogo";
 export default async function Footer() {
   const headersList = await headers();
   const host = headersList.get("host") ?? "";
-  const isAppHost = host.startsWith("app.");
+  const isAppHost = host.startsWith("app.") || host.startsWith("inbox.");
 
   const toSiteHref = (href: string) => href;
   const toAppHref = (href: string) => href;
@@ -73,7 +73,7 @@ export default async function Footer() {
             <div className="flex items-center gap-2">
               <Bot className="h-6 w-6 text-emerald-500" />
               <span className="text-lg font-semibold tracking-tight">
-                ChatIQ
+                ChatIQ Inbox
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -165,7 +165,7 @@ export default async function Footer() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border pt-6 text-sm text-muted-foreground md:flex-row">
-          <span>© {new Date().getFullYear()} ChatIQ. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} ChatIQ Inbox. All rights reserved.</span>
           <span>Made with care in distributed workspaces worldwide.</span>
         </div>
       </div>

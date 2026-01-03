@@ -18,7 +18,7 @@ export default function GlobalError({
       <div className="flex flex-col items-center space-y-6 text-center">
         <div className="flex items-center gap-2">
           <Bot className="h-8 w-8 text-emerald-500" />
-          <span className="text-2xl font-bold">ChatIQ</span>
+          <span className="text-2xl font-bold">ChatIQ Inbox</span>
         </div>
 
         <div className="space-y-2">

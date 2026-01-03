@@ -10,7 +10,7 @@ export default function AppFooter() {
   return (
     <footer className="border-t border-border bg-background">
       <div className="container mx-auto flex flex-col gap-3 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <span>© {new Date().getFullYear()} ChatIQ</span>
+        <span>© {new Date().getFullYear()} ChatIQ Inbox</span>
         <nav className="flex flex-wrap items-center gap-4">
           {resources.map((link) => (
             <Link
