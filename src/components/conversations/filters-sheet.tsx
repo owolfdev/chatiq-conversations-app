@@ -53,24 +53,39 @@ export function FiltersSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl p-0"
+        className="rounded-t-2xl border border-muted/60 bg-background/95 p-0 shadow-xl backdrop-blur"
         showClose={false}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <Button variant="ghost" size="sm" onClick={onReset}>
+        <div className="flex justify-center px-4 pt-3">
+          <div className="h-1 w-12 rounded-full bg-muted-foreground/30" />
+        </div>
+        <div className="mt-2 flex items-center justify-between border-b bg-muted/20 px-4 py-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+            className="transition-transform active:scale-95"
+          >
             Reset
           </Button>
-          <Button size="sm" onClick={() => onOpenChange(false)}>
+          <Button
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="transition-transform active:scale-95"
+          >
             Done
           </Button>
         </div>
-        <div className="mt-3 grid gap-3 px-4 pb-4">
+        <div className="mt-4 grid gap-4 px-4 pb-6">
           <div className="space-y-1.5">
-            <Label htmlFor="filter-bot" className="text-xs text-muted-foreground">
+            <Label
+              htmlFor="filter-bot"
+              className="text-sm font-semibold text-foreground/80"
+            >
               Bot
             </Label>
             <Select value={selectedBot} onValueChange={onBotChange}>
-              <SelectTrigger id="filter-bot" className="h-9">
+              <SelectTrigger id="filter-bot" className="h-10">
                 <SelectValue placeholder="All bots" />
               </SelectTrigger>
               <SelectContent>
@@ -85,9 +100,11 @@ export function FiltersSheet({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Topic</Label>
+            <Label className="text-sm font-semibold text-foreground/80">
+              Topic
+            </Label>
             <Select value={selectedTopic} onValueChange={onTopicChange}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="All topics" />
               </SelectTrigger>
               <SelectContent>
@@ -102,9 +119,11 @@ export function FiltersSheet({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Status</Label>
+            <Label className="text-sm font-semibold text-foreground/80">
+              Status
+            </Label>
             <Select value={selectedStatus} onValueChange={onStatusChange}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -116,9 +135,11 @@ export function FiltersSheet({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Source</Label>
+            <Label className="text-sm font-semibold text-foreground/80">
+              Source
+            </Label>
             <Select value={selectedSource} onValueChange={onSourceChange}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>
               <SelectContent>
@@ -133,19 +154,21 @@ export function FiltersSheet({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="filter-detail" className="text-xs text-muted-foreground">
+            <Label
+              htmlFor="filter-detail"
+              className="text-sm font-semibold text-foreground/80"
+            >
               Detail search
             </Label>
             <Input
               id="filter-detail"
               placeholder="Search detail"
               value={detailQuery}
-              className="h-9"
+              className="h-10"
               onChange={(event) => onDetailQueryChange(event.target.value)}
             />
           </div>
         </div>
-
       </SheetContent>
     </Sheet>
   );

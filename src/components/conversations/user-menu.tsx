@@ -12,11 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, LogOut, User } from "lucide-react";
+import { Check, Loader2, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/actions/auth/logout";
 import { setActiveTeam } from "@/app/actions/teams/set-active-team";
+
+const ACTIVE_TEAM_EVENT = "active-team-changed";
 
 interface UserData {
   name: string;
@@ -50,6 +53,7 @@ async function fetchActiveTeamId(): Promise<string | null> {
 
 export function UserMenu() {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<TeamOption[]>([]);
@@ -159,6 +163,9 @@ export function UserMenu() {
       setActiveTeamId(teamId);
       setTeamError(null);
       router.refresh();
+      window.dispatchEvent(
+        new CustomEvent(ACTIVE_TEAM_EVENT, { detail: { teamId } })
+      );
     });
   };
 
@@ -172,22 +179,34 @@ export function UserMenu() {
       .toUpperCase()
       .slice(0, 2) || "U";
   const avatarUrl = userData?.avatarUrl;
+  const teamLabel = loadingTeams
+    ? "Loading"
+    : currentTeam?.name || (teams.length === 0 ? "No team" : "Team");
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-          disabled={loading}
-          aria-label="Open user menu"
-        >
-          <Avatar className="h-9 w-9">
-            <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="w-28 justify-center truncate text-xs font-semibold"
+            title={currentTeam?.name || teamLabel}
+          >
+            {teamLabel}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            disabled={loading}
+            aria-label="Open user menu"
+          >
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-normal">
@@ -217,6 +236,7 @@ export function UserMenu() {
             onSelect={(event) => {
               event.preventDefault();
               handleSelectTeam(team.id);
+              setMenuOpen(false);
             }}
             className="flex items-center justify-between gap-2"
           >
@@ -237,6 +257,8 @@ export function UserMenu() {
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
+        {/* TODO: Restore profile link if we want profile editing from this menu. */}
+        {/*
         <DropdownMenuItem asChild>
           <Link href="/profile">
             <User className="mr-2 h-4 w-4" />
@@ -244,6 +266,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        */}
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Log out

@@ -10,6 +10,8 @@ import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options"
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 import { Filter, RefreshCcw } from "lucide-react";
 
+const ACTIVE_TEAM_EVENT = "active-team-changed";
+
 interface ConversationsListProps {
   initialConversations: ConversationListItem[];
   initialBots: Array<{ id: string; name: string }>;
@@ -162,6 +164,17 @@ export function ConversationsList({
       setIsRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    const handleTeamChange = () => {
+      handleRefresh();
+    };
+
+    window.addEventListener(ACTIVE_TEAM_EVENT, handleTeamChange);
+    return () => {
+      window.removeEventListener(ACTIVE_TEAM_EVENT, handleTeamChange);
+    };
+  }, [handleRefresh]);
 
   const resetFilters = () => {
     setSelectedBot("all");

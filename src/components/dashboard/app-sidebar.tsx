@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   Bot,
@@ -89,7 +90,14 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Bot className="h-4 w-4" />
+            <Image
+              src="/icon-192.png"
+              alt="ChatIQ Inbox"
+              width={24}
+              height={24}
+              className="h-6 w-6 rounded"
+              priority
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold">ChatIQ Inbox</span>
