@@ -27,6 +27,7 @@ const appUrl = getAppUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
+  applicationName: "Inbox",
   title: {
     default: "ChatIQ Inbox",
     template: "%s | ChatIQ Inbox",
@@ -37,6 +38,9 @@ export const metadata: Metadata = {
     capable: true,
     title: "Inbox",
     statusBarStyle: "black-translucent",
+  },
+  other: {
+    "apple-mobile-web-app-title": "Inbox",
   },
   icons: {
     icon: [
