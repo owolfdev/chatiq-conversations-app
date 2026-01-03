@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Home, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { UserMenu as ConversationsUserMenu } from "@/components/conversations/user-menu";
@@ -14,16 +14,14 @@ interface MainNavProps {
 
 export default function MainNav({ user }: MainNavProps) {
   const pathname = usePathname();
-  const links = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/conversations", label: "Conversations", icon: MessageSquare },
-  ];
+  const isConversationDetail =
+    pathname?.startsWith("/conversations/") && pathname !== "/conversations";
 
   return (
     <header className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
-        <nav className="grid h-16 items-center gap-6 grid-cols-[1fr_auto_1fr]">
-          <div className="flex items-center justify-start">
+        <nav className="flex h-16 items-center justify-between">
+          <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/icon-192.png"
@@ -35,29 +33,22 @@ export default function MainNav({ user }: MainNavProps) {
               />
               <span className="font-bold text-xl">Inbox</span>
             </Link>
-          </div>
-          <div className="flex items-center justify-center gap-5">
-            {links.map(({ href, label, icon: Icon }) => {
-              const isActive =
-                href === "/"
-                  ? pathname === "/"
-                  : pathname === href || pathname?.startsWith(`${href}/`);
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "text-emerald-600"
-                      : "text-muted-foreground hover:text-emerald-500"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="sr-only">{label}</span>
-                </Link>
-              );
-            })}
+            <Link
+              href="/conversations"
+              aria-label="Conversations"
+              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                pathname === "/conversations" ||
+                pathname?.startsWith("/conversations/")
+                  ? "text-emerald-600"
+                  : "text-muted-foreground hover:text-emerald-500"
+              }`}
+            >
+              {isConversationDetail ? (
+                <ArrowLeft className="h-4 w-4" />
+              ) : null}
+              <MessageSquare className="h-5 w-5" />
+              <span className="sr-only">Conversations</span>
+            </Link>
           </div>
           <div className="flex items-center justify-end gap-3">
             {user ? (

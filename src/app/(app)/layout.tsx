@@ -13,10 +13,12 @@ export const metadata: Metadata = {
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <AppHeader />
-      <InstallBanner />
-      <div className="flex-1">{children}</div>
+    <div className="flex h-screen flex-col bg-background overflow-hidden">
+      <div className="shrink-0">
+        <AppHeader />
+        <InstallBanner />
+      </div>
+      <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
     </div>
   );
 }

@@ -2,34 +2,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  FileDown,
-  MessageSquare,
-  MoreVertical,
-  Trash2,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { deleteConversation } from "@/app/actions/chat/delete-conversation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
@@ -67,36 +42,24 @@ interface ConversationViewerProps {
 export function ConversationViewer({
   conversationId,
   botName,
-  botDescription,
   messages,
   conversationTopic,
-  createdAt,
   resolutionStatus,
   conversationSource,
   customerName,
   customerAvatarUrl,
-  customerStatus,
   humanTakeover = false,
   humanTakeoverUntil,
   interactive = false,
-  backHref = "/conversations",
 }: ConversationViewerProps) {
-  const router = useRouter();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportFormat, setExportFormat] = useState<"csv" | "json">("json");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [status, setStatus] = useState<"resolved" | "unresolved">(
     resolutionStatus ?? "unresolved"
   );
-  const [topic, setTopic] = useState(
-    conversationTopic || "General Inquiry"
-  );
+  const [topic, setTopic] = useState(conversationTopic || "General Inquiry");
   const [topicUpdating, setTopicUpdating] = useState(false);
-  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(messages);
   const [takeoverEnabled, setTakeoverEnabled] = useState(humanTakeover);
   const [takeoverUntil, setTakeoverUntil] = useState<string | null>(
@@ -129,55 +92,6 @@ export function ConversationViewer({
     return result;
   };
 
-  const handleExport = async (format: "csv" | "json") => {
-    setIsExporting(true);
-    try {
-      const response = await fetch(
-        `/api/conversations/${conversationId}/export?format=${format}`,
-        { credentials: "include" }
-      );
-      if (!response.ok) {
-        throw new Error("Export failed");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `conversation-${conversationId.substring(0, 8)}-${
-        new Date().toISOString().split("T")[0]
-      }.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("Conversation exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export conversation");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteConversation(conversationId);
-      toast.success("Conversation deleted successfully");
-      // Redirect to conversations page
-      router.push(backHref);
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete conversation"
-      );
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -188,6 +102,16 @@ export function ConversationViewer({
     });
   };
 
+  const formatShortDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
   const displayCustomerName = customerName || "Customer";
   const botAvatarUrl = "/images/avatars/icon-512.jpg";
   const takeoverExpiry = takeoverUntil ? new Date(takeoverUntil) : null;
@@ -195,13 +119,12 @@ export function ConversationViewer({
     takeoverEnabled &&
     (!takeoverExpiry || takeoverExpiry.getTime() > Date.now());
   const statusLabel = status === "resolved" ? "Resolved" : "Unresolved";
-  const statusToggleLabel =
-    status === "resolved" ? "Mark Unresolved" : "Mark Resolved";
   const lastMessageAt =
     localMessages.length > 0
       ? localMessages[localMessages.length - 1]?.createdAt
       : null;
   const standalone = true;
+  const sourceLabel = conversationSource || "Unknown source";
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -376,7 +299,9 @@ export function ConversationViewer({
         messageIdsRef.current = new Set(rows.map((row) => row.id));
         const persisted: ChatMessage[] = rows.map((row) => ({
           id: row.id,
-          role: (row.sender === "bot" ? "assistant" : "user") as ChatMessage["role"],
+          role: (row.sender === "bot"
+            ? "assistant"
+            : "user") as ChatMessage["role"],
           content: row.content,
           createdAt: row.created_at,
         }));
@@ -603,226 +528,86 @@ export function ConversationViewer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIsNavigatingBack(true);
-              router.push(backHref);
-            }}
-            disabled={isNavigatingBack}
-            aria-label="Back to conversations"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                status === "resolved"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
-              )}
-            >
-              {statusLabel}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Conversation actions"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                if (!standalone) return;
-                handleExport("json");
-              }}
-              disabled={isExporting || !standalone}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Export JSON
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                if (!standalone) return;
-                handleExport("csv");
-              }}
-              disabled={isExporting || !standalone}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Export CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                if (!standalone) return;
-                setShowDeleteDialog(true);
-              }}
-              className="text-destructive"
-              disabled={!standalone}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MessageSquare className="h-3 w-3" />
-            <span>{botName}</span>
-            <span>•</span>
-            <span>{messages.length} messages</span>
-          </div>
-          <h1 className="text-lg font-semibold">
-            {topic || "General Inquiry"}
-          </h1>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-3 space-y-3">
-          {!standalone && (
-            <div className="rounded-xl border border-dashed border-muted px-3 py-2 text-xs text-muted-foreground">
-              Install the app to reply, take over, or edit this conversation.
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span>Created {formatDate(createdAt)}</span>
-            <span>
-              {lastMessageAt ? `Last ${formatDate(lastMessageAt)}` : "Last —"}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+    <div className="w-full flex h-full flex-col min-h-0">
+      <div className="shrink-0 bg-background border-b border-border shadow-sm">
+        <div className="space-y-2 pb-2 px-4">
+          <div className="flex items-start justify-between gap-3">
             <Button
-              variant="outline"
+              variant={takeoverActive ? "outline" : "default"}
               size="sm"
-              onClick={handleStatusToggle}
-              disabled={statusUpdating || !standalone}
+              onClick={() => handleTakeoverToggle(!takeoverActive)}
+              disabled={takeoverUpdating || !standalone}
+              aria-pressed={takeoverActive}
             >
-              {statusUpdating ? "Updating..." : statusToggleLabel}
+              {takeoverUpdating
+                ? "Switching..."
+                : takeoverActive
+                ? "Agent"
+                : "Bot"}
             </Button>
-            <div className="min-w-[180px] flex-1">
-              <Select
-                value={topic}
-                onValueChange={handleTopicChange}
-                disabled={topicUpdating || !standalone}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select topic" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TOPIC_LABELS.map((label) => (
-                    <SelectItem key={label} value={label}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
-                <AvatarImage
-                  src={customerAvatarUrl || undefined}
-                  alt={displayCustomerName}
-                />
-                <AvatarFallback>
-                  {displayCustomerName.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="text-sm font-medium">{displayCustomerName}</div>
-                {customerStatus ? (
-                  <div className="text-xs text-muted-foreground">
-                    {customerStatus}
-                  </div>
-                ) : null}
+            <div className="text-xs text-muted-foreground text-right flex flex-wrap items-center justify-end gap-2">
+              <Badge variant="outline">{botName}</Badge>
+              <Badge variant="outline" className="capitalize">
+                {sourceLabel}
+              </Badge>
+              <div className="text-lg font-semibold text-foreground pl-3">
+                {displayCustomerName}
               </div>
             </div>
-            {conversationSource ? (
-              <Badge variant="outline" className="capitalize">
-                {conversationSource}
-              </Badge>
-            ) : null}
           </div>
-          {!interactive && (
-            <Badge variant="outline" className="w-fit">
-              Read-only view
-            </Badge>
-          )}
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleStatusToggle}
+                disabled={statusUpdating || !standalone}
+                aria-pressed={status === "resolved"}
+                className={cn(
+                  status === "resolved"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                    : "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                )}
+              >
+                {statusUpdating ? "Updating..." : statusLabel}
+              </Button>
+              <div className="min-w-[140px]">
+                <Select
+                  value={topic}
+                  onValueChange={handleTopicChange}
+                  disabled={topicUpdating || !standalone}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TOPIC_LABELS.map((label) => (
+                      <SelectItem key={label} value={label}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground text-right space-y-1">
+              <div>{localMessages.length} messages</div>
+              <div>{lastMessageAt ? formatShortDate(lastMessageAt) : "—"}</div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Messages */}
-      <Card className="bg-[var(--background)] border-0 rounded-none shadow-none py-0">
-        <CardContent className="pt-0 px-0 pb-0">
+      <Card className="bg-[var(--background)] border-0 rounded-none shadow-none py-0 flex-1 min-h-0">
+        <CardContent className="pt-0 px-0 pb-0 h-full flex flex-col min-h-0">
           {interactive ? (
-            <div className="h-[min(70vh,720px)] min-h-[420px] flex flex-col">
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-0 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant={takeoverActive ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => handleTakeoverToggle(!takeoverActive)}
-                    disabled={takeoverUpdating || !standalone}
-                  >
-                    {takeoverUpdating
-                      ? "Updating..."
-                      : takeoverActive
-                      ? "Release"
-                      : "Take over"}
-                  </Button>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs",
-                      takeoverActive
-                        ? "border-pink-200 bg-pink-50 text-pink-800"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    )}
-                  >
-                    {takeoverActive
-                      ? "Human has taken over this conversation"
-                      : "Bot will respond"}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-sm font-medium">
-                      {displayCustomerName}
-                    </div>
-                    {customerStatus ? (
-                      <div className="text-xs text-muted-foreground">
-                        {customerStatus}
-                      </div>
-                    ) : null}
-                  </div>
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage
-                      src={customerAvatarUrl || undefined}
-                      alt={displayCustomerName}
-                    />
-                    <AvatarFallback>
-                      {displayCustomerName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              </div>
+            <div className="h-full flex flex-col min-h-0">
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto flex flex-col gap-3 px-1 py-3"
+                className="flex-1 overflow-y-auto flex flex-col gap-3 px-2 py-3"
               >
                 {localMessages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
@@ -834,7 +619,7 @@ export function ConversationViewer({
                     return (
                       <div
                         key={msg.id ?? msg.createdAt ?? idx}
-                      className={cn("flex items-start gap-3", {
+                        className={cn("flex items-start gap-3", {
                           "justify-end": isUser,
                           "justify-start": !isUser,
                         })}
@@ -887,7 +672,7 @@ export function ConversationViewer({
               </div>
               <form
                 onSubmit={handleSend}
-                className="border-t border-border pt-3 mt-0 flex items-center gap-2"
+                className="border-t border-border pt-3 mt-0 flex items-center gap-2 shrink-0 bg-background px-4"
               >
                 <Input
                   ref={inputRef}
@@ -905,7 +690,7 @@ export function ConversationViewer({
               </form>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 px-2">
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   No messages in this conversation
@@ -970,30 +755,6 @@ export function ConversationViewer({
           )}
         </CardContent>
       </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this conversation? This action
-              cannot be undone and will permanently delete all messages in this
-              conversation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -82,35 +82,37 @@ export default async function ConversationPage({
     : [];
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-10 pt-4">
-      <ConversationViewer
-        conversationId={conversation.id}
-        botName={bot.name}
-        botDescription={bot.description}
-        messages={messages}
-        conversationTopic={conversation.topic ?? conversation.title}
-        createdAt={conversation.created_at}
-        resolutionStatus={conversation.resolution_status ?? "unresolved"}
-        conversationSource={conversation.source ?? null}
-        customerName={
-          typeof conversation.source_detail?.line_display_name === "string"
-            ? conversation.source_detail.line_display_name
-            : null
-        }
-        customerAvatarUrl={
-          typeof conversation.source_detail?.line_picture_url === "string"
-            ? conversation.source_detail.line_picture_url
-            : null
-        }
-        customerStatus={
-          typeof conversation.source_detail?.line_status_message === "string"
-            ? conversation.source_detail.line_status_message
-            : null
-        }
-        humanTakeover={conversation.human_takeover}
-        humanTakeoverUntil={conversation.human_takeover_until}
-        interactive
-      />
+    <main className="h-full bg-background pt-2 pb-4 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ConversationViewer
+          conversationId={conversation.id}
+          botName={bot.name}
+          botDescription={bot.description}
+          messages={messages}
+          conversationTopic={conversation.topic ?? conversation.title}
+          createdAt={conversation.created_at}
+          resolutionStatus={conversation.resolution_status ?? "unresolved"}
+          conversationSource={conversation.source ?? null}
+          customerName={
+            typeof conversation.source_detail?.line_display_name === "string"
+              ? conversation.source_detail.line_display_name
+              : null
+          }
+          customerAvatarUrl={
+            typeof conversation.source_detail?.line_picture_url === "string"
+              ? conversation.source_detail.line_picture_url
+              : null
+          }
+          customerStatus={
+            typeof conversation.source_detail?.line_status_message === "string"
+              ? conversation.source_detail.line_status_message
+              : null
+          }
+          humanTakeover={conversation.human_takeover}
+          humanTakeoverUntil={conversation.human_takeover_until}
+          interactive
+        />
+      </div>
     </main>
   );
 }
