@@ -10,6 +10,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -23,6 +27,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@/utils/supabase/client";
+import { useTheme } from "@/components/theme-provider";
 
 interface UserMenuProps {
   name?: string;
@@ -34,6 +39,7 @@ export default function UserMenu({ name }: UserMenuProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const fetchUnreadCount = async () => {
     const supabase = createClient();
@@ -165,6 +171,20 @@ export default function UserMenu({ name }: UserMenuProps) {
           <DropdownMenuItem asChild>
             <Link href="/contact">Support</Link>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={theme ?? "system"}
+            onValueChange={(value) => {
+              setTheme(value);
+              setMenuOpen(false);
+            }}
+          >
+            <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
 
           <DropdownMenuItem
             onClick={() => {

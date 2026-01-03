@@ -8,6 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -18,6 +20,7 @@ import { Check, Loader2, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/actions/auth/logout";
 import { setActiveTeam } from "@/app/actions/teams/set-active-team";
+import { useTheme } from "@/components/theme-provider";
 
 const ACTIVE_TEAM_EVENT = "active-team-changed";
 
@@ -61,6 +64,7 @@ export function UserMenu() {
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [teamError, setTeamError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -256,6 +260,21 @@ export function UserMenu() {
             {teamError}
           </DropdownMenuItem>
         ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          Theme
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme ?? "system"}
+          onValueChange={(value) => {
+            setTheme(value);
+            setMenuOpen(false);
+          }}
+        >
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         {/* TODO: Restore profile link if we want profile editing from this menu. */}
         {/*

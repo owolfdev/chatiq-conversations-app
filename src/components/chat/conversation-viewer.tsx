@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bot, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { MessageMarkdown } from "@/components/chat/message-markdown";
@@ -457,7 +458,8 @@ export function ConversationViewer({
         enabled?: boolean;
         human_takeover_until?: string | null;
       } | null;
-      setTakeoverEnabled(Boolean(payload?.enabled ?? enabled));
+      const nextEnabled = Boolean(payload?.enabled ?? enabled);
+      setTakeoverEnabled(nextEnabled);
       if (enabled) {
         if (payload?.human_takeover_until) {
           setTakeoverUntil(payload.human_takeover_until);
@@ -465,6 +467,7 @@ export function ConversationViewer({
       } else {
         setTakeoverUntil(null);
       }
+      toast.success(nextEnabled ? "Human has taken over." : "Bot is active.");
     } catch (error) {
       console.error("Failed to update takeover", error);
       toast.error(
@@ -555,24 +558,19 @@ export function ConversationViewer({
               disabled={takeoverUpdating || !standalone}
               aria-pressed={takeoverActive}
             >
-              {takeoverUpdating
-                ? "Switching..."
-                : takeoverActive
-                ? "Agent"
-                : "Bot"}
+              <span className="inline-flex items-center gap-2">
+                {takeoverActive ? (
+                  <UserRound className="h-4 w-4" />
+                ) : (
+                  <Bot className="h-4 w-4" />
+                )}
+                {takeoverUpdating
+                  ? "Switching..."
+                  : takeoverActive
+                  ? "Agent"
+                  : "Bot"}
+              </span>
             </Button>
-            <div className="text-xs text-muted-foreground text-right flex flex-wrap items-center justify-end gap-2">
-              <Badge variant="outline">{botName}</Badge>
-              <Badge variant="outline" className="capitalize">
-                {sourceLabel}
-              </Badge>
-              <div className="text-lg font-semibold text-foreground pl-3">
-                {displayCustomerName}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 type="button"
@@ -589,7 +587,7 @@ export function ConversationViewer({
               >
                 {statusUpdating ? "Updating..." : statusLabel}
               </Button>
-              <div className="min-w-[140px]">
+              <div className="min-w-[120px]">
                 <Select
                   value={topic}
                   onValueChange={handleTopicChange}
@@ -608,9 +606,26 @@ export function ConversationViewer({
                 </Select>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground text-right space-y-1">
-              <div>{localMessages.length} messages</div>
-              <div>{lastMessageAt ? formatShortDate(lastMessageAt) : "—"}</div>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div>{localMessages.length} messages</div>
+            <div>{lastMessageAt ? formatShortDate(lastMessageAt) : "—"}</div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="max-w-[180px] truncate">
+                <span title={botName}>{botName}</span>
+              </Badge>
+              <Badge variant="outline" className="capitalize">
+                {sourceLabel}
+              </Badge>
+            </div>
+            <div
+              className="text-lg font-semibold text-foreground text-right max-w-[240px] truncate"
+              title={displayCustomerName}
+            >
+              {displayCustomerName}
             </div>
           </div>
         </div>
