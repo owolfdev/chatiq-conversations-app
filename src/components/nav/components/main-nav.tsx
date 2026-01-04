@@ -16,13 +16,19 @@ export default function MainNav({ user }: MainNavProps) {
   const pathname = usePathname();
   const isConversationDetail =
     pathname?.startsWith("/conversations/") && pathname !== "/conversations";
+  const homeHref =
+    pathname === "/conversations"
+      ? "/"
+      : pathname?.startsWith("/conversations/")
+      ? "/conversations"
+      : "/conversations";
 
   return (
     <header className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <nav className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={homeHref} className="flex items-center gap-2">
               <Image
                 src="/icon-192.png"
                 alt="ChatIQ Inbox"
@@ -36,7 +42,7 @@ export default function MainNav({ user }: MainNavProps) {
             <Link
               href="/conversations"
               aria-label="Conversations"
-              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 text-sm font-medium transition-transform transition-colors active:scale-90 ${
                 pathname === "/conversations" ||
                 pathname?.startsWith("/conversations/")
                   ? "text-emerald-600"

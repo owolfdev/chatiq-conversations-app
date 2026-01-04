@@ -609,7 +609,9 @@ export function ConversationViewer({
           </div>
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <div>{localMessages.length} messages</div>
-            <div>{lastMessageAt ? formatShortDate(lastMessageAt) : "—"}</div>
+            <div>
+              {`Last Activity: ${lastMessageAt ? formatShortDate(lastMessageAt) : "—"}`}
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-3">
