@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { ConversationListItem } from "@/types/conversations";
+import { Trash2 } from "lucide-react";
 
 interface ConversationListItemProps {
   conversation: ConversationListItem;
+  onDelete: (conversationId: string) => void;
+  deleting?: boolean;
 }
 
 const formatTime = (value: string | null) => {
@@ -60,6 +64,8 @@ const getCustomerProfile = (
 
 export function ConversationListItemCard({
   conversation,
+  onDelete,
+  deleting = false,
 }: ConversationListItemProps) {
   const lastSeen = conversation.last_message_at || conversation.created_at;
   const preview = formatPreview(
@@ -75,51 +81,61 @@ export function ConversationListItemCard({
       : "border-amber-200 bg-amber-50 text-amber-900";
 
   return (
-    <Link
-      href={`/conversations/${conversation.id}`}
-      className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
-    >
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
       <div className="flex items-start gap-3">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src={avatarUrl || undefined} alt={name} />
-          <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="min-w-0">
-            <div className="truncate text-base font-semibold">{name}</div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`text-[10px] ${statusClass}`}
-              >
-                {statusLabel}
-              </Badge>
-              {conversation.source ? (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] capitalize text-muted-foreground"
-                >
-                  {conversation.source}
+        <Link
+          href={`/conversations/${conversation.id}`}
+          className="flex min-w-0 flex-1 items-start gap-3"
+        >
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={avatarUrl || undefined} alt={name} />
+            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="min-w-0">
+              <div className="truncate text-lg font-semibold">{name}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className={`text-sm ${statusClass}`}>
+                  {statusLabel}
                 </Badge>
-              ) : null}
-              <Badge
-                variant="outline"
-                className="text-[10px] text-muted-foreground"
-              >
-                {formatTime(lastSeen)}
-              </Badge>
+                {conversation.source ? (
+                  <Badge
+                    variant="outline"
+                    className="text-sm capitalize text-muted-foreground"
+                  >
+                    {conversation.source}
+                  </Badge>
+                ) : null}
+                <Badge variant="outline" className="text-sm text-muted-foreground">
+                  {formatTime(lastSeen)}
+                </Badge>
+              </div>
+            </div>
+            <div className="mt-2 text-sm font-medium text-foreground">
+              <span className="truncate">
+                {conversation.topic || "General Inquiry"}
+              </span>
+            </div>
+            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+              {preview}
             </div>
           </div>
-          <div className="mt-2 text-xs font-medium text-foreground">
-            <span className="truncate">
-              {conversation.topic || "General Inquiry"}
-            </span>
-          </div>
-          <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-            {preview}
-          </div>
-        </div>
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Delete conversation"
+          className="text-muted-foreground hover:text-destructive"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDelete(conversation.id);
+          }}
+          disabled={deleting}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
-    </Link>
+    </div>
   );
 }

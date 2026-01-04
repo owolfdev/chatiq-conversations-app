@@ -10,6 +10,18 @@ import type { ConversationListItem } from "@/types/conversations";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 import { Filter, RefreshCcw } from "lucide-react";
+import { toast } from "sonner";
+import { deleteConversation } from "@/app/actions/chat/delete-conversation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ACTIVE_TEAM_EVENT = "active-team-changed";
 
@@ -35,6 +47,9 @@ export function ConversationsList({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
 
   const sourceOptions = useMemo(() => {
@@ -174,6 +189,33 @@ export function ConversationsList({
     }
   };
 
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (deletingId) return;
+    setDeletingId(conversationId);
+    try {
+      await deleteConversation(conversationId);
+      setConversations((prev) =>
+        prev.filter((conversation) => conversation.id !== conversationId)
+      );
+      toast.success("Conversation deleted.");
+    } catch (error) {
+      console.error("Failed to delete conversation", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete conversation"
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+  const handleRequestDelete = (conversationId: string) => {
+    setPendingDeleteId(conversationId);
+    setConfirmOpen(true);
+  };
+
+  const pendingConversation = pendingDeleteId
+    ? conversations.find((conversation) => conversation.id === pendingDeleteId)
+    : null;
+
   useEffect(() => {
     const handleTeamChange = () => {
       handleRefresh();
@@ -251,6 +293,8 @@ export function ConversationsList({
             <ConversationListItemCard
               key={conversation.id}
               conversation={conversation}
+              deleting={deletingId === conversation.id}
+              onDelete={handleRequestDelete}
             />
           ))
         )}
@@ -259,6 +303,43 @@ export function ConversationsList({
       <div className="mt-6 text-center text-xs text-muted-foreground">
         {conversations.length} conversations
       </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) {
+            setPendingDeleteId(null);
+          }
+          setConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingConversation
+                ? `This will permanently delete the conversation with ${pendingConversation.title || "the selected user"}.`
+                : "This will permanently delete the selected conversation."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingId)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingDeleteId) return;
+                handleDeleteConversation(pendingDeleteId);
+                setConfirmOpen(false);
+              }}
+              disabled={!pendingDeleteId || Boolean(deletingId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <FiltersSheet
         open={filtersOpen}
