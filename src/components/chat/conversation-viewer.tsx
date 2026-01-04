@@ -593,7 +593,7 @@ export function ConversationViewer({
                   onValueChange={handleTopicChange}
                   disabled={topicUpdating || !standalone}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-xs w-[160px] sm:w-[190px]">
                     <SelectValue placeholder="Select topic" />
                   </SelectTrigger>
                   <SelectContent>
