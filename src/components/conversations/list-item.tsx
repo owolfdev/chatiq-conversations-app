@@ -40,6 +40,37 @@ const formatPreview = (value: string | null, fallback: string) => {
   return `${text.slice(0, 160)}…`;
 };
 
+const getTopicTint = (topic: string) => {
+  const normalized = topic.toLowerCase();
+  if (
+    normalized.includes("cancel") ||
+    normalized.includes("complaint") ||
+    normalized.includes("payment issue") ||
+    normalized.includes("needs immediate attention")
+  ) {
+    return "border-red-200 bg-red-50 text-red-800";
+  }
+  if (normalized.includes("needs human")) {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+  if (
+    normalized.includes("booking inquiry") ||
+    normalized.includes("availability hours") ||
+    normalized.includes("order status") ||
+    normalized.includes("pricing") ||
+    normalized.includes("product inquiry")
+  ) {
+    return "border-blue-200 bg-blue-50 text-blue-800";
+  }
+  if (normalized.includes("resolved")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+  if (normalized.includes("greeting")) {
+    return "border-border text-muted-foreground";
+  }
+  return "border-border text-muted-foreground";
+};
+
 const getCustomerProfile = (
   sourceDetail: ConversationListItem["source_detail"]
 ) => {
@@ -79,6 +110,8 @@ export function ConversationListItemCard({
     conversation.resolution_status === "resolved"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : "border-amber-200 bg-amber-50 text-amber-900";
+  const topicLabel = conversation.topic || "General Inquiry";
+  const topicTint = getTopicTint(topicLabel);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
@@ -111,10 +144,10 @@ export function ConversationListItemCard({
                 </Badge>
               </div>
             </div>
-            <div className="mt-2 text-sm font-medium text-foreground">
-              <span className="truncate">
-                {conversation.topic || "General Inquiry"}
-              </span>
+            <div className="mt-2">
+              <Badge variant="outline" className={`text-sm ${topicTint}`}>
+                {topicLabel}
+              </Badge>
             </div>
             <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
               {preview}

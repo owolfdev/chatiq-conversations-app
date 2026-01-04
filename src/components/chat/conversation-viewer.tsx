@@ -120,7 +120,7 @@ export function ConversationViewer({
   const takeoverActive =
     takeoverEnabled &&
     (!takeoverExpiry || takeoverExpiry.getTime() > Date.now());
-  const statusLabel = status === "resolved" ? "Resolved" : "Unresolved";
+  const statusLabel = status === "resolved" ? "Resolved" : "Open";
   const lastMessageAt =
     localMessages.length > 0
       ? localMessages[localMessages.length - 1]?.createdAt
