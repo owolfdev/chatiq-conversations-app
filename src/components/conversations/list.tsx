@@ -237,7 +237,7 @@ export function ConversationsList({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-10 pt-4">
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
       {standalone === false ? (
         <div className="mb-4 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">ChatIQ Inbox is a PWA.</span>{" "}
@@ -279,7 +279,7 @@ export function ConversationsList({
         </Button>
       </div>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">
         {isLoading ? (
           <div className="rounded-2xl border border-dashed border-muted px-4 py-10 text-center text-sm text-muted-foreground">
             Loading conversations...
