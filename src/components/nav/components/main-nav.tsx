@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarDays, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { UserMenu as ConversationsUserMenu } from "@/components/conversations/user-menu";
@@ -16,11 +16,15 @@ export default function MainNav({ user }: MainNavProps) {
   const pathname = usePathname();
   const isConversationDetail =
     pathname?.startsWith("/conversations/") && pathname !== "/conversations";
+  const isBookingDetail =
+    pathname?.startsWith("/bookings/") && pathname !== "/bookings";
   const homeHref =
     pathname === "/conversations"
       ? "/"
       : pathname?.startsWith("/conversations/")
       ? "/conversations"
+      : pathname?.startsWith("/bookings/")
+      ? "/bookings"
       : "/conversations";
 
   return (
@@ -54,6 +58,19 @@ export default function MainNav({ user }: MainNavProps) {
               ) : null}
               <MessageSquare className="h-5 w-5" />
               <span className="sr-only">Conversations</span>
+            </Link>
+            <Link
+              href="/bookings"
+              aria-label="Bookings"
+              className={`flex items-center gap-2 text-sm font-medium transition-transform transition-colors active:scale-90 ${
+                pathname === "/bookings" || pathname?.startsWith("/bookings/")
+                  ? "text-emerald-600"
+                  : "text-muted-foreground hover:text-emerald-500"
+              }`}
+            >
+              {isBookingDetail ? <ArrowLeft className="h-4 w-4" /> : null}
+              <CalendarDays className="h-5 w-5" />
+              <span className="sr-only">Bookings</span>
             </Link>
           </div>
           <div className="flex items-center justify-end gap-3">

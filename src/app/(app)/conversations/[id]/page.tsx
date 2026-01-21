@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ back?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 
 export default async function ConversationPage({
   params,
+  searchParams,
 }: ConversationPageProps) {
   const supabase = await createClient();
   const {
@@ -26,6 +28,12 @@ export default async function ConversationPage({
   }
 
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const backParam = resolvedSearchParams?.back;
+  const backHref =
+    typeof backParam === "string" && backParam.startsWith("/bookings/")
+      ? backParam
+      : undefined;
 
   const { data: conversation, error } = await supabase
     .from("bot_conversations")
@@ -111,6 +119,7 @@ export default async function ConversationPage({
           humanTakeover={conversation.human_takeover}
           humanTakeoverUntil={conversation.human_takeover_until}
           interactive
+          backHref={backHref}
         />
       </div>
     </main>

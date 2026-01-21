@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ export function ConversationViewer({
   humanTakeover = false,
   humanTakeoverUntil,
   interactive = false,
+  backHref,
 }: ConversationViewerProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -550,6 +552,13 @@ export function ConversationViewer({
     <div className="w-full flex h-full flex-col min-h-0">
       <div className="shrink-0 bg-background border-b border-border shadow-sm">
         <div className="space-y-2 pb-2 px-4">
+          {backHref ? (
+            <div className="pt-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={backHref}>Back to booking</Link>
+              </Button>
+            </div>
+          ) : null}
           <div className="flex items-start justify-between gap-3">
             <Button
               variant={takeoverActive ? "outline" : "default"}
