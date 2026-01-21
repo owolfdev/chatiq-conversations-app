@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BookingSummary } from "@/types/bookings";
-import { Trash2, CalendarDays } from "lucide-react";
+import { MessageSquare, Trash2, CalendarDays } from "lucide-react";
 
 interface BookingListItemProps {
   booking: BookingSummary;
@@ -62,6 +62,11 @@ export function BookingListItemCard({
                   {booking.service_type}
                 </Badge>
               ) : null}
+              {booking.workflow_name ? (
+                <Badge variant="outline" className="text-sm text-muted-foreground">
+                  {booking.workflow_name}
+                </Badge>
+              ) : null}
               <Badge variant="outline" className="text-sm text-muted-foreground">
                 {requested}
                 {booking.requested_time_slot
@@ -76,20 +81,38 @@ export function BookingListItemCard({
             </div>
           </div>
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Delete booking"
-          className="text-muted-foreground hover:text-destructive"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onDelete(booking.id);
-          }}
-          disabled={deleting}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {booking.conversation_id ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="View conversation"
+              className="text-muted-foreground hover:text-emerald-600"
+              asChild
+            >
+              <Link
+                href={`/conversations/${booking.conversation_id}?back=/bookings/${booking.id}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Delete booking"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDelete(booking.id);
+            }}
+            disabled={deleting}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

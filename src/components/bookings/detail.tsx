@@ -184,7 +184,7 @@ export function BookingDetailView({ bookingId }: { bookingId: string }) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col overflow-y-auto px-4 pb-10 pt-4">
         <div className="rounded-2xl border border-dashed border-muted px-4 py-10 text-center text-sm text-muted-foreground">
           Loading booking...
         </div>
@@ -194,7 +194,7 @@ export function BookingDetailView({ bookingId }: { bookingId: string }) {
 
   if (!booking) {
     return (
-      <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col overflow-y-auto px-4 pb-10 pt-4">
         <div className="rounded-2xl border border-dashed border-muted px-4 py-10 text-center text-sm text-muted-foreground">
           Booking not found.
         </div>
@@ -203,10 +203,10 @@ export function BookingDetailView({ bookingId }: { bookingId: string }) {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
-      <div className="flex items-center justify-between gap-2">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col overflow-y-auto px-4 pb-10 pt-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Booking</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {booking.conversation_id ? (
             <Button asChild>
               <Link

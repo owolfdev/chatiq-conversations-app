@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -191,13 +190,6 @@ export function UserMenu() {
     <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="w-28 justify-center truncate text-xs font-semibold"
-            title={currentTeam?.name || teamLabel}
-          >
-            {teamLabel}
-          </Badge>
           <Button
             variant="ghost"
             size="icon"
@@ -218,6 +210,9 @@ export function UserMenu() {
             <span className="truncate text-sm font-semibold">{displayName}</span>
             <span className="truncate text-xs text-muted-foreground">
               {displayEmail}
+            </span>
+            <span className="truncate text-xs text-muted-foreground">
+              Active team: {teamLabel}
             </span>
           </div>
         </DropdownMenuLabel>

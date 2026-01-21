@@ -11,6 +11,8 @@ export type BookingSummary = {
   status: BookingStatus;
   created_at: string;
   workflow_id: string | null;
+  workflow_name: string | null;
+  conversation_id: string | null;
 };
 
 export type BookingDetail = BookingSummary & {
