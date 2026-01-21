@@ -19,6 +19,12 @@ interface Profile {
   marketing_emails?: boolean;
 }
 
+interface NotificationPreferences {
+  push_enabled: boolean;
+  notify_conversations: boolean;
+  notify_bookings: boolean;
+}
+
 export default async function SettingsPage() {
   const supabase = await createClient();
   const {
@@ -61,11 +67,25 @@ export default async function SettingsPage() {
     isTeamOwner = membership?.role === "owner";
   }
 
+  let notificationPreferences: NotificationPreferences | null = null;
+
+  if (teamId) {
+    const { data: prefs } = await supabase
+      .from("bot_notification_preferences")
+      .select("push_enabled, notify_conversations, notify_bookings")
+      .eq("user_id", user.id)
+      .eq("team_id", teamId)
+      .maybeSingle();
+
+    notificationPreferences = prefs ?? null;
+  }
+
   return (
     <SettingsClient
       initialProfile={profile}
       teamName={teamName}
       isTeamOwner={isTeamOwner}
+      initialNotificationPreferences={notificationPreferences}
     />
   );
 }

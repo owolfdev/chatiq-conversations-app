@@ -1,7 +1,8 @@
 Local Dev Proxy Setup
 
 Purpose
-- The shell app proxies all /api/conversations/* requests to the main app.
+- The shell app proxies all /api/conversations/* and /api/bookings/* requests to the main app.
+- LINE send requests are also proxied so replies can be sent from the shell.
 - This avoids CORS and keeps the shell as a thin UI.
 
 Requirements
@@ -20,8 +21,11 @@ Auth Notes
 
 Quick Test
 - In the shell browser, open /conversations and confirm data loads.
+- In the shell browser, open /bookings and confirm data loads.
 - CLI test (requires cookie; do not share values):
   curl -i "http://localhost:3001/api/conversations?limit=1" \
+    --cookie "sb-<project-ref>-auth-token=<value>"
+  curl -i "http://localhost:3001/api/bookings?limit=1" \
     --cookie "sb-<project-ref>-auth-token=<value>"
 
 Troubleshooting

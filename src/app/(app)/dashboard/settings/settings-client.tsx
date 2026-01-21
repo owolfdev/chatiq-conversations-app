@@ -43,15 +43,29 @@ interface SettingsClientProps {
   initialProfile: Profile | null;
   teamName: string | null;
   isTeamOwner: boolean;
+  initialNotificationPreferences: {
+    push_enabled: boolean;
+    notify_conversations: boolean;
+    notify_bookings: boolean;
+  } | null;
 }
 
 export default function SettingsClient({
   initialProfile,
   teamName,
   isTeamOwner,
+  initialNotificationPreferences,
 }: SettingsClientProps) {
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(
+    initialNotificationPreferences?.push_enabled ?? false
+  );
+  const [notifyConversations, setNotifyConversations] = useState(
+    initialNotificationPreferences?.notify_conversations ?? false
+  );
+  const [notifyBookings, setNotifyBookings] = useState(
+    initialNotificationPreferences?.notify_bookings ?? false
+  );
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
@@ -63,6 +77,8 @@ export default function SettingsClient({
   const [isUpdatingTeamName, startTeamRenameTransition] = useTransition();
   const [isUpdatingMarketingEmails, startMarketingEmailsTransition] =
     useTransition();
+  const [isUpdatingNotifications, startNotificationTransition] =
+    useTransition();
 
   const supabase = createClient();
 
@@ -72,6 +88,14 @@ export default function SettingsClient({
       setMarketingEmails(initialProfile.marketing_emails);
     }
   }, [initialProfile]);
+
+  useEffect(() => {
+    setPushEnabled(initialNotificationPreferences?.push_enabled ?? false);
+    setNotifyConversations(
+      initialNotificationPreferences?.notify_conversations ?? false
+    );
+    setNotifyBookings(initialNotificationPreferences?.notify_bookings ?? false);
+  }, [initialNotificationPreferences]);
 
   useEffect(() => {
     setTeamNameInput(teamName || "");
@@ -171,6 +195,208 @@ export default function SettingsClient({
         return;
       }
       toast.success("Marketing email preference updated.");
+    });
+  };
+
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const ensurePushSubscription = async () => {
+    if (!("Notification" in window)) {
+      toast.error("Notifications are not supported in this browser.");
+      return false;
+    }
+
+    if (!("serviceWorker" in navigator)) {
+      toast.error("Service workers are not supported in this browser.");
+      return false;
+    }
+
+    if (!window.isSecureContext) {
+      toast.error("Push notifications require a secure context (HTTPS).");
+      return false;
+    }
+
+    const permission =
+      Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+
+    if (permission !== "granted") {
+      toast.error("Please allow notifications to enable push alerts.");
+      return false;
+    }
+
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      toast.error("Missing VAPID public key configuration.");
+      return false;
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+    }
+
+    const response = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription,
+        userAgent: navigator.userAgent,
+      }),
+    });
+
+    if (!response.ok) {
+      toast.error("Unable to save push subscription.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const disablePushSubscription = async () => {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      return;
+    }
+
+    await fetch("/api/push/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
+
+    await subscription.unsubscribe();
+  };
+
+  const persistNotificationPreferences = ({
+    nextPushEnabled,
+    nextNotifyConversations,
+    nextNotifyBookings,
+    fallback,
+  }: {
+    nextPushEnabled: boolean;
+    nextNotifyConversations: boolean;
+    nextNotifyBookings: boolean;
+    fallback: () => void;
+  }) => {
+    startNotificationTransition(async () => {
+      const { updateNotificationPreferences } = await import(
+        "@/app/actions/notifications/update-notification-preferences"
+      );
+      const result = await updateNotificationPreferences({
+        pushEnabled: nextPushEnabled,
+        notifyConversations: nextNotifyConversations,
+        notifyBookings: nextNotifyBookings,
+      });
+
+      if (!result.success) {
+        fallback();
+        toast.error(result.error || "Failed to update notification settings.");
+      } else {
+        toast.success("Notification preferences updated.");
+      }
+    });
+  };
+
+  const handlePushToggle = async (value: boolean) => {
+    const previous = {
+      pushEnabled,
+      notifyConversations,
+      notifyBookings,
+    };
+
+    if (value) {
+      const subscribed = await ensurePushSubscription();
+      if (!subscribed) {
+        return;
+      }
+    } else {
+      await disablePushSubscription();
+    }
+
+    const shouldEnableDefaults =
+      value && !notifyConversations && !notifyBookings;
+    const nextNotifyConversations = shouldEnableDefaults
+      ? true
+      : notifyConversations;
+    const nextNotifyBookings = shouldEnableDefaults ? false : notifyBookings;
+
+    setPushEnabled(value);
+    setNotifyConversations(nextNotifyConversations);
+    setNotifyBookings(nextNotifyBookings);
+
+    persistNotificationPreferences({
+      nextPushEnabled: value,
+      nextNotifyConversations: nextNotifyConversations,
+      nextNotifyBookings: nextNotifyBookings,
+      fallback: () => {
+        setPushEnabled(previous.pushEnabled);
+        setNotifyConversations(previous.notifyConversations);
+        setNotifyBookings(previous.notifyBookings);
+      },
+    });
+  };
+
+  const handleNotifyConversationsToggle = (value: boolean) => {
+    const previous = {
+      pushEnabled,
+      notifyConversations,
+      notifyBookings,
+    };
+
+    setNotifyConversations(value);
+
+    persistNotificationPreferences({
+      nextPushEnabled: pushEnabled,
+      nextNotifyConversations: value,
+      nextNotifyBookings: notifyBookings,
+      fallback: () => {
+        setPushEnabled(previous.pushEnabled);
+        setNotifyConversations(previous.notifyConversations);
+        setNotifyBookings(previous.notifyBookings);
+      },
+    });
+  };
+
+  const handleNotifyBookingsToggle = (value: boolean) => {
+    const previous = {
+      pushEnabled,
+      notifyConversations,
+      notifyBookings,
+    };
+
+    setNotifyBookings(value);
+
+    persistNotificationPreferences({
+      nextPushEnabled: pushEnabled,
+      nextNotifyConversations: notifyConversations,
+      nextNotifyBookings: value,
+      fallback: () => {
+        setPushEnabled(previous.pushEnabled);
+        setNotifyConversations(previous.notifyConversations);
+        setNotifyBookings(previous.notifyBookings);
+      },
     });
   };
 
@@ -451,9 +677,50 @@ export default function SettingsClient({
               </div>
               <Switch
                 id="push-notifications"
-                checked={pushNotifications}
-                onCheckedChange={setPushNotifications}
+                checked={pushEnabled}
+                onCheckedChange={handlePushToggle}
+                disabled={isUpdatingNotifications}
               />
+            </div>
+            <div className="rounded-lg border border-dashed border-zinc-200 p-4 dark:border-zinc-700">
+              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                Push alert types
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Choose which events should trigger push alerts.
+              </p>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="push-conversations">
+                      New Conversations
+                    </Label>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Notify me when a new conversation starts.
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-conversations"
+                    checked={notifyConversations}
+                    onCheckedChange={handleNotifyConversationsToggle}
+                    disabled={!pushEnabled || isUpdatingNotifications}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="push-bookings">New Bookings</Label>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Notify me when a booking request is submitted.
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-bookings"
+                    checked={notifyBookings}
+                    onCheckedChange={handleNotifyBookingsToggle}
+                    disabled={!pushEnabled || isUpdatingNotifications}
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div>
