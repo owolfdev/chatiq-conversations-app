@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, LogOut } from "lucide-react";
+import { Check, Loader2, LogOut, Settings } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/actions/auth/logout";
 import { setActiveTeam } from "@/app/actions/teams/set-active-team";
@@ -281,6 +281,13 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         */}
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Log out
