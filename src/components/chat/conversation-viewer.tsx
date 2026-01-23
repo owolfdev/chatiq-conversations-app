@@ -1052,7 +1052,27 @@ export function ConversationViewer({
               </div>
               <div className="border-t border-border px-4 pt-2 pb-2 space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Translation tools</span>
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <span>Translation tools</span>
+                    {!showTranslationPanel && (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            translateInbound ? "bg-emerald-500" : "bg-zinc-400"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            translateOutbound ? "bg-emerald-500" : "bg-zinc-400"
+                          )}
+                          aria-hidden="true"
+                        />
+                      </span>
+                    )}
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
