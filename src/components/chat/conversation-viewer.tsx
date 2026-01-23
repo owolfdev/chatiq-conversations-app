@@ -38,6 +38,8 @@ const LANGUAGE_OPTIONS = [
   { value: "th", label: "Thai" },
 ];
 
+const TRANSLATION_SETTINGS_KEY = "chatiq.translation.settings";
+
 interface ConversationViewerProps {
   conversationId: string;
   botName: string;
@@ -173,6 +175,62 @@ export function ConversationViewer({
   useEffect(() => {
     setTopic(conversationTopic || "General Inquiry");
   }, [conversationTopic]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const raw = window.localStorage.getItem(TRANSLATION_SETTINGS_KEY);
+    if (!raw) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as {
+        showPanel?: boolean;
+        inboundEnabled?: boolean;
+        inboundTo?: string;
+        outboundEnabled?: boolean;
+        outboundTo?: string;
+      };
+      if (typeof parsed.showPanel === "boolean") {
+        setShowTranslationPanel(parsed.showPanel);
+      }
+      if (typeof parsed.inboundEnabled === "boolean") {
+        setTranslateInbound(parsed.inboundEnabled);
+      }
+      if (typeof parsed.inboundTo === "string") {
+        setTranslateInboundTo(parsed.inboundTo);
+      }
+      if (typeof parsed.outboundEnabled === "boolean") {
+        setTranslateOutbound(parsed.outboundEnabled);
+      }
+      if (typeof parsed.outboundTo === "string") {
+        setTranslateOutboundTo(parsed.outboundTo);
+      }
+    } catch (error) {
+      console.error("Failed to load translation settings", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const payload = JSON.stringify({
+      showPanel: showTranslationPanel,
+      inboundEnabled: translateInbound,
+      inboundTo: translateInboundTo,
+      outboundEnabled: translateOutbound,
+      outboundTo: translateOutboundTo,
+    });
+    window.localStorage.setItem(TRANSLATION_SETTINGS_KEY, payload);
+  }, [
+    showTranslationPanel,
+    translateInbound,
+    translateInboundTo,
+    translateOutbound,
+    translateOutboundTo,
+  ]);
 
   useEffect(() => {
     if (!translateInbound) {
