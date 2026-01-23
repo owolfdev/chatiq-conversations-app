@@ -35,6 +35,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const conversationsHref = user ? "/conversations" : "/sign-in";
+  const bookingsHref = user ? "/bookings" : "/sign-in";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -72,6 +73,9 @@ export default async function HomePage() {
             className="bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <Link href={conversationsHref}>Open Conversations</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href={bookingsHref}>Open Bookings</Link>
           </Button>
           <InstallCta />
         </div>
