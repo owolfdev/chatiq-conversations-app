@@ -1050,7 +1050,7 @@ export function ConversationViewer({
                   })
                 )}
               </div>
-              <div className="border-t border-border px-4 pt-2 space-y-3">
+              <div className="border-t border-border px-4 pt-2 pb-2 space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Translation tools</span>
                   <Button
