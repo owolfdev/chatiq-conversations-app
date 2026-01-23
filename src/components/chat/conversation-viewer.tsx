@@ -112,6 +112,7 @@ export function ConversationViewer({
   } | null>(null);
   const [isTranslatingInbound, setIsTranslatingInbound] = useState(false);
   const [isTranslatingOutbound, setIsTranslatingOutbound] = useState(false);
+  const [showTranslationPanel, setShowTranslationPanel] = useState(false);
 
   const dedupeMessages = (items: ChatMessage[]) => {
     const seen = new Set<string>();
@@ -991,112 +992,127 @@ export function ConversationViewer({
                   })
                 )}
               </div>
-              <div className="border-t border-border px-4 pt-3 space-y-3">
-                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={translateInbound}
-                      onCheckedChange={setTranslateInbound}
-                    />
-                    <span>Translate incoming</span>
-                    <Select
-                      value={translateInboundTo}
-                      onValueChange={setTranslateInboundTo}
-                      disabled={!translateInbound}
-                    >
-                      <SelectTrigger className="h-8 w-[130px] text-xs">
-                        <SelectValue placeholder="Language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANGUAGE_OPTIONS.filter(
-                          (option) => option.value !== "auto"
-                        ).map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {isTranslatingInbound && (
-                      <Badge variant="outline" className="text-[10px]">
-                        Translating...
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={translateOutbound}
-                      onCheckedChange={(checked) => {
-                        setTranslateOutbound(checked);
-                        setOutboundPreview(null);
-                      }}
-                    />
-                    <span>Translate outgoing</span>
-                    <Select
-                      value={translateOutboundTo}
-                      onValueChange={setTranslateOutboundTo}
-                      disabled={!translateOutbound}
-                    >
-                      <SelectTrigger className="h-8 w-[140px] text-xs">
-                        <SelectValue placeholder="Language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANGUAGE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {isTranslatingOutbound && (
-                      <Badge variant="outline" className="text-[10px]">
-                        Translating...
-                      </Badge>
-                    )}
-                  </div>
+              <div className="border-t border-border px-4 pt-2 space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Translation tools</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTranslationPanel((prev) => !prev)}
+                  >
+                    {showTranslationPanel ? "Hide" : "Show"}
+                  </Button>
                 </div>
-                {outboundPreview && (
-                  <div className="rounded-md border border-border/70 bg-muted/30 p-3 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        Preview ({outboundPreview.targetLanguage})
-                      </Badge>
-                      <span className="text-[11px] text-muted-foreground">
-                        Confirm before sending
-                      </span>
+                {showTranslationPanel && (
+                  <>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={translateInbound}
+                          onCheckedChange={setTranslateInbound}
+                        />
+                        <span>Translate incoming</span>
+                        <Select
+                          value={translateInboundTo}
+                          onValueChange={setTranslateInboundTo}
+                          disabled={!translateInbound}
+                        >
+                          <SelectTrigger className="h-8 w-[130px] text-xs">
+                            <SelectValue placeholder="Language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LANGUAGE_OPTIONS.filter(
+                              (option) => option.value !== "auto"
+                            ).map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isTranslatingInbound && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Translating...
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={translateOutbound}
+                          onCheckedChange={(checked) => {
+                            setTranslateOutbound(checked);
+                            setOutboundPreview(null);
+                          }}
+                        />
+                        <span>Translate outgoing</span>
+                        <Select
+                          value={translateOutboundTo}
+                          onValueChange={setTranslateOutboundTo}
+                          disabled={!translateOutbound}
+                        >
+                          <SelectTrigger className="h-8 w-[140px] text-xs">
+                            <SelectValue placeholder="Language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isTranslatingOutbound && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Translating...
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm whitespace-pre-wrap break-words">
-                      {outboundPreview.translated}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleSendTranslated}
-                        disabled={sending}
-                      >
-                        Send translated
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={handleSendOriginal}
-                        disabled={sending}
-                      >
-                        Send original
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setOutboundPreview(null)}
-                        disabled={sending}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
+                    {outboundPreview && (
+                      <div className="rounded-md border border-border/70 bg-muted/30 p-3 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="text-[10px]">
+                            Preview ({outboundPreview.targetLanguage})
+                          </Badge>
+                          <span className="text-[11px] text-muted-foreground">
+                            Confirm before sending
+                          </span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap break-words">
+                          {outboundPreview.translated}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleSendTranslated}
+                            disabled={sending}
+                          >
+                            Send translated
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={handleSendOriginal}
+                            disabled={sending}
+                          >
+                            Send original
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setOutboundPreview(null)}
+                            disabled={sending}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <form
