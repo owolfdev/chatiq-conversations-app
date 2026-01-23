@@ -10,7 +10,9 @@ import { Trash2 } from "lucide-react";
 interface ConversationListItemProps {
   conversation: ConversationListItem;
   onDelete: (conversationId: string) => void;
+  onOpen: () => void;
   deleting?: boolean;
+  opening?: boolean;
 }
 
 const formatTime = (value: string | null) => {
@@ -96,7 +98,9 @@ const getCustomerProfile = (
 export function ConversationListItemCard({
   conversation,
   onDelete,
+  onOpen,
   deleting = false,
+  opening = false,
 }: ConversationListItemProps) {
   const lastSeen = conversation.last_message_at || conversation.created_at;
   const preview = formatPreview(
@@ -118,7 +122,12 @@ export function ConversationListItemCard({
       <div className="flex items-start gap-3">
         <Link
           href={`/conversations/${conversation.id}`}
-          className="flex min-w-0 flex-1 items-start gap-3"
+          className="flex min-w-0 flex-1 items-start gap-3 transition-transform active:scale-[0.99]"
+          onClick={() => {
+            if (!opening) {
+              onOpen();
+            }
+          }}
         >
           <Avatar className="h-9 w-9">
             <AvatarImage src={avatarUrl || undefined} alt={name} />
@@ -126,7 +135,12 @@ export function ConversationListItemCard({
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="min-w-0">
-              <div className="truncate text-lg font-semibold">{name}</div>
+              <div className="flex items-center gap-2">
+                <div className="truncate text-lg font-semibold">{name}</div>
+                {opening ? (
+                  <span className="text-xs text-muted-foreground">Opening...</span>
+                ) : null}
+              </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className={`text-sm ${statusClass}`}>
                   {statusLabel}

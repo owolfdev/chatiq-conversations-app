@@ -50,6 +50,7 @@ export function ConversationsList({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
 
   const sourceOptions = useMemo(() => {
@@ -294,6 +295,8 @@ export function ConversationsList({
               key={conversation.id}
               conversation={conversation}
               deleting={deletingId === conversation.id}
+              opening={openingId === conversation.id}
+              onOpen={() => setOpeningId(conversation.id)}
               onDelete={handleRequestDelete}
             />
           ))
