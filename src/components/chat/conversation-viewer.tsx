@@ -14,6 +14,7 @@ import { Bot, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { MessageMarkdown } from "@/components/chat/message-markdown";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
+
+const LANGUAGE_OPTIONS = [
+  { value: "auto", label: "Auto (detect)" },
+  { value: "en", label: "English" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "pt", label: "Portuguese" },
+  { value: "it", label: "Italian" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "zh", label: "Chinese" },
+  { value: "th", label: "Thai" },
+];
 
 interface ConversationViewerProps {
   conversationId: string;
@@ -80,6 +95,23 @@ export function ConversationViewer({
     role: ChatMessage["role"];
     createdAt: string;
   } | null>(null);
+  const [translateInbound, setTranslateInbound] = useState(false);
+  const [translateInboundTo, setTranslateInboundTo] = useState("en");
+  const [translateOutbound, setTranslateOutbound] = useState(false);
+  const [translateOutboundTo, setTranslateOutboundTo] = useState("auto");
+  const [inboundTranslations, setInboundTranslations] = useState<
+    Record<string, { text: string; detectedLanguage?: string }>
+  >({});
+  const [showOriginalMessages, setShowOriginalMessages] = useState<Set<string>>(
+    new Set()
+  );
+  const [outboundPreview, setOutboundPreview] = useState<{
+    original: string;
+    translated: string;
+    targetLanguage: string;
+  } | null>(null);
+  const [isTranslatingInbound, setIsTranslatingInbound] = useState(false);
+  const [isTranslatingOutbound, setIsTranslatingOutbound] = useState(false);
 
   const dedupeMessages = (items: ChatMessage[]) => {
     const seen = new Set<string>();
@@ -95,6 +127,9 @@ export function ConversationViewer({
     }
     return result;
   };
+
+  const getMessageKey = (msg: ChatMessage, index: number) =>
+    msg.id ?? msg.createdAt ?? `${index}-${msg.role}`;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -137,6 +172,99 @@ export function ConversationViewer({
   useEffect(() => {
     setTopic(conversationTopic || "General Inquiry");
   }, [conversationTopic]);
+
+  useEffect(() => {
+    if (!translateInbound) {
+      setInboundTranslations({});
+      setShowOriginalMessages(new Set());
+      return;
+    }
+    setInboundTranslations({});
+    setShowOriginalMessages(new Set());
+  }, [translateInbound, translateInboundTo]);
+
+  useEffect(() => {
+    if (!interactive || !translateInbound) {
+      return;
+    }
+
+    const translateIncoming = async () => {
+      const candidateMessages = localMessages
+        .map((msg, index) => ({
+          key: getMessageKey(msg, index),
+          msg,
+        }))
+        .filter(({ msg }) => msg.content.trim().length > 0);
+      const pending = candidateMessages.filter(
+        ({ key }) => inboundTranslations[key] === undefined
+      );
+      if (!pending.length) {
+        return;
+      }
+
+      setIsTranslatingInbound(true);
+      try {
+        const response = await fetch("/api/translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            mode: "translate",
+            texts: pending.map(({ msg }) => msg.content),
+            targetLanguage: translateInboundTo,
+          }),
+        });
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error || "Translation failed");
+        }
+        const payload = (await response.json().catch(() => null)) as {
+          translations?: Array<{
+            translatedText?: string;
+            detectedSourceLanguage?: string;
+          }>;
+        } | null;
+        const translations = payload?.translations ?? [];
+        setInboundTranslations((prev) => {
+          const next = { ...prev };
+          pending.forEach(({ key, msg }, index) => {
+            const translation = translations[index];
+            next[key] = {
+              text: translation?.translatedText ?? msg.content,
+              detectedLanguage: translation?.detectedSourceLanguage,
+            };
+          });
+          return next;
+        });
+      } catch (error) {
+        console.error("Failed to translate inbound messages", error);
+        toast.error(
+          error instanceof Error ? error.message : "Inbound translation failed"
+        );
+      } finally {
+        setIsTranslatingInbound(false);
+      }
+    };
+
+    translateIncoming();
+  }, [
+    inboundTranslations,
+    interactive,
+    localMessages,
+    translateInbound,
+    translateInboundTo,
+  ]);
+
+  useEffect(() => {
+    if (!outboundPreview) {
+      return;
+    }
+    if (outboundPreview.original !== draft.trim()) {
+      setOutboundPreview(null);
+    }
+  }, [draft, outboundPreview]);
 
   useEffect(() => {
     if (!interactive) {
@@ -359,9 +487,8 @@ export function ConversationViewer({
     };
   }, [conversationId, interactive]);
 
-  const handleSend = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = draft.trim();
+  const sendMessage = async (content: string, restoreDraft?: string) => {
+    const trimmed = content.trim();
     if (!trimmed || sending) {
       return;
     }
@@ -427,13 +554,130 @@ export function ConversationViewer({
       toast.error(
         error instanceof Error ? error.message : "Failed to send message"
       );
-      setDraft(trimmed);
+      setDraft(restoreDraft ?? trimmed);
       setLocalMessages((prev) =>
         prev.filter((msg) => msg.createdAt !== optimisticTimestamp)
       );
     } finally {
       setSending(false);
     }
+  };
+
+  const handleSend = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = draft.trim();
+    if (!trimmed || sending) {
+      return;
+    }
+
+    if (translateOutbound) {
+      setIsTranslatingOutbound(true);
+      try {
+        let targetLanguage = translateOutboundTo;
+        setDraft(trimmed);
+        if (targetLanguage === "auto") {
+          const lastUserMessage = [...localMessages]
+            .reverse()
+            .find((msg) => msg.role === "user" && msg.content.trim());
+          if (!lastUserMessage) {
+            throw new Error("No inbound message available for language detect");
+          }
+          const detectResponse = await fetch("/api/translation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              mode: "detect",
+              text: lastUserMessage.content,
+            }),
+          });
+          if (!detectResponse.ok) {
+            const payload = (await detectResponse.json().catch(() => null)) as {
+              error?: string;
+            } | null;
+            throw new Error(payload?.error || "Language detection failed");
+          }
+          const payload = (await detectResponse.json().catch(() => null)) as {
+            detections?: Array<{ language?: string }>;
+          } | null;
+          const detectedLanguage = payload?.detections?.[0]?.language;
+          if (!detectedLanguage) {
+            throw new Error("Unable to detect customer language");
+          }
+          targetLanguage = detectedLanguage;
+        }
+
+        const translateResponse = await fetch("/api/translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            mode: "translate",
+            text: trimmed,
+            targetLanguage,
+          }),
+        });
+        if (!translateResponse.ok) {
+          const payload = (await translateResponse.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error || "Translation failed");
+        }
+        const payload = (await translateResponse.json().catch(() => null)) as {
+          translations?: Array<{ translatedText?: string }>;
+        } | null;
+        const translated = payload?.translations?.[0]?.translatedText;
+        if (!translated) {
+          throw new Error("Translation returned empty text");
+        }
+        setOutboundPreview({
+          original: trimmed,
+          translated,
+          targetLanguage,
+        });
+      } catch (error) {
+        console.error("Failed to translate outbound message", error);
+        toast.error(
+          error instanceof Error ? error.message : "Outbound translation failed"
+        );
+      } finally {
+        setIsTranslatingOutbound(false);
+      }
+      return;
+    }
+
+    await sendMessage(trimmed, trimmed);
+  };
+
+  const handleSendTranslated = async () => {
+    if (!outboundPreview) {
+      return;
+    }
+    const originalDraft = outboundPreview.original;
+    const translated = outboundPreview.translated;
+    setOutboundPreview(null);
+    await sendMessage(translated, originalDraft);
+  };
+
+  const handleSendOriginal = async () => {
+    if (!outboundPreview) {
+      return;
+    }
+    const original = outboundPreview.original;
+    setOutboundPreview(null);
+    await sendMessage(original, original);
+  };
+
+  const toggleShowOriginal = (key: string) => {
+    setShowOriginalMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
   const handleTakeoverToggle = async (enabled: boolean) => {
@@ -668,6 +912,15 @@ export function ConversationViewer({
                 ) : (
                   localMessages.map((msg, idx) => {
                     const isUser = msg.role === "user";
+                    const messageKey = getMessageKey(msg, idx);
+                    const translationEntry = translateInbound
+                      ? inboundTranslations[messageKey]
+                      : undefined;
+                    const showOriginal = showOriginalMessages.has(messageKey);
+                    const contentToRender =
+                      translationEntry && !showOriginal
+                        ? translationEntry.text
+                        : msg.content;
                     return (
                       <div
                         key={msg.id ?? msg.createdAt ?? idx}
@@ -693,8 +946,24 @@ export function ConversationViewer({
                           )}
                         >
                           <div className="whitespace-pre-wrap break-words">
-                            <MessageMarkdown content={msg.content} />
+                            <MessageMarkdown content={contentToRender} />
                           </div>
+                          {translationEntry && translateInbound && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                              <Badge variant="outline" className="text-[10px]">
+                                {translationEntry.detectedLanguage
+                                  ? `${translationEntry.detectedLanguage} → ${translateInboundTo}`
+                                  : `→ ${translateInboundTo}`}
+                              </Badge>
+                              <button
+                                type="button"
+                                className="underline underline-offset-2"
+                                onClick={() => toggleShowOriginal(messageKey)}
+                              >
+                                {showOriginal ? "Show translation" : "Show original"}
+                              </button>
+                            </div>
+                          )}
                           {msg.createdAt && (
                             <div
                               className={cn(
@@ -722,6 +991,114 @@ export function ConversationViewer({
                   })
                 )}
               </div>
+              <div className="border-t border-border px-4 pt-3 space-y-3">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={translateInbound}
+                      onCheckedChange={setTranslateInbound}
+                    />
+                    <span>Translate incoming</span>
+                    <Select
+                      value={translateInboundTo}
+                      onValueChange={setTranslateInboundTo}
+                      disabled={!translateInbound}
+                    >
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="Language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGE_OPTIONS.filter(
+                          (option) => option.value !== "auto"
+                        ).map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isTranslatingInbound && (
+                      <Badge variant="outline" className="text-[10px]">
+                        Translating...
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={translateOutbound}
+                      onCheckedChange={(checked) => {
+                        setTranslateOutbound(checked);
+                        setOutboundPreview(null);
+                      }}
+                    />
+                    <span>Translate outgoing</span>
+                    <Select
+                      value={translateOutboundTo}
+                      onValueChange={setTranslateOutboundTo}
+                      disabled={!translateOutbound}
+                    >
+                      <SelectTrigger className="h-8 w-[140px] text-xs">
+                        <SelectValue placeholder="Language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isTranslatingOutbound && (
+                      <Badge variant="outline" className="text-[10px]">
+                        Translating...
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {outboundPreview && (
+                  <div className="rounded-md border border-border/70 bg-muted/30 p-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        Preview ({outboundPreview.targetLanguage})
+                      </Badge>
+                      <span className="text-[11px] text-muted-foreground">
+                        Confirm before sending
+                      </span>
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap break-words">
+                      {outboundPreview.translated}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleSendTranslated}
+                        disabled={sending}
+                      >
+                        Send translated
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSendOriginal}
+                        disabled={sending}
+                      >
+                        Send original
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setOutboundPreview(null)}
+                        disabled={sending}
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <form
                 onSubmit={handleSend}
                 className="border-t border-border pt-3 pb-3 mt-0 flex items-center gap-2 shrink-0 bg-background px-4"
@@ -737,7 +1114,13 @@ export function ConversationViewer({
                   type="submit"
                   disabled={sending || !draft.trim() || !standalone}
                 >
-                  {sending ? "Sending..." : "Send"}
+                  {translateOutbound
+                    ? isTranslatingOutbound
+                      ? "Translating..."
+                      : "Preview"
+                    : sending
+                    ? "Sending..."
+                    : "Send"}
                 </Button>
               </form>
             </div>
