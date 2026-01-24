@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import AppHeader from "@/components/nav/app-header";
 import { InstallBanner } from "@/components/pwa/install-banner";
-import { LaunchScreen } from "@/components/launch-screen";
 
 export const metadata: Metadata = {
   robots: {
@@ -15,7 +14,6 @@ export const metadata: Metadata = {
 export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen flex-col bg-background overflow-hidden">
-      <LaunchScreen />
       <div className="shrink-0">
         <AppHeader />
         <InstallBanner />
