@@ -5,7 +5,7 @@ import Image from "next/image";
 
 const SESSION_KEY = "chatiq.launch_screen_seen";
 const FADE_DURATION_MS = 250;
-const AUTO_HIDE_MS = 2000;
+const AUTO_HIDE_MS = 1500;
 
 export function LaunchScreen() {
   const [shouldRender, setShouldRender] = useState(true);
@@ -35,7 +35,7 @@ export function LaunchScreen() {
     }
 
     const handleLoad = () => {
-      window.setTimeout(markHidden, 300);
+      window.setTimeout(markHidden, 100);
     };
 
     if (document.readyState === "complete") {
@@ -63,13 +63,13 @@ export function LaunchScreen() {
       }`}
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-emerald-100">
+      <div className="flex flex-col items-center gap-5">
+        <div className="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-emerald-100">
           <Image
             src="/images/avatars/ios-icon.png"
             alt="ChatIQ Inbox"
-            width={72}
-            height={72}
+            width={140}
+            height={140}
             priority
           />
         </div>
