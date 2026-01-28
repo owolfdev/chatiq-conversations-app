@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { MessageSquare, CalendarDays } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
 import { getAppUrl } from "@/lib/email/get-app-url";
@@ -72,10 +73,16 @@ export default async function HomePage() {
             size="lg"
             className="bg-emerald-600 text-white hover:bg-emerald-700"
           >
-            <Link href={conversationsHref}>Open Conversations</Link>
+            <Link href={conversationsHref} className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              <span>Open Conversations</span>
+            </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href={bookingsHref}>Open Bookings</Link>
+            <Link href={bookingsHref} className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              <span>Open Bookings</span>
+            </Link>
           </Button>
           <InstallCta />
         </div>
