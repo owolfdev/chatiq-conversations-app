@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +14,9 @@ import {
 import { RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import type { BookingSummary, BookingWorkflow } from "@/types/bookings";
+import type { InboxCounts } from "@/types/inbox";
 import { BookingListItemCard } from "@/components/bookings/list-item";
+import { dispatchInboxCounts } from "@/lib/inbox-counts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +43,7 @@ export function BookingsList() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
+  const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
 
   const workflowOptions = useMemo(() => {
     const base = [{ id: "all", name: "All workflows" }];
@@ -106,6 +110,27 @@ export function BookingsList() {
     [debouncedReferenceQuery, selectedWorkflow, statusFilter]
   );
 
+  const loadCounts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/inbox-counts", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json().catch(() => null)) as
+        | InboxCounts
+        | null;
+      if (!payload) {
+        return;
+      }
+      setInboxCounts(payload);
+      dispatchInboxCounts(payload);
+    } catch (error) {
+      console.error("Failed to load inbox counts", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadWorkflows();
   }, [loadWorkflows]);
@@ -122,6 +147,10 @@ export function BookingsList() {
   }, [loadBookings]);
 
   useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
+
+  useEffect(() => {
     const startPolling = () => {
       if (pollingRef.current !== null) {
         return;
@@ -129,6 +158,7 @@ export function BookingsList() {
       pollingRef.current = window.setInterval(() => {
         if (document.visibilityState === "visible") {
           loadBookings(true);
+          loadCounts();
         }
       }, 8000);
     };
@@ -143,6 +173,7 @@ export function BookingsList() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         loadBookings(true);
+        loadCounts();
         startPolling();
       } else {
         stopPolling();
@@ -174,6 +205,7 @@ export function BookingsList() {
     try {
       await loadWorkflows();
       await loadBookings(true);
+      await loadCounts();
     } finally {
       setIsRefreshing(false);
     }
@@ -217,6 +249,9 @@ export function BookingsList() {
   const pendingBooking = pendingDeleteId
     ? bookings.find((booking) => booking.id === pendingDeleteId)
     : null;
+
+  const pendingCount = inboxCounts?.pendingBookings ?? 0;
+  const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
@@ -262,6 +297,20 @@ export function BookingsList() {
             />
           </Button>
         </div>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <Badge
+          variant="outline"
+          className="border-amber-200 bg-amber-50 text-amber-900"
+        >
+          Pending: {pendingCount}
+        </Badge>
+        <Badge
+          variant="outline"
+          className="border-emerald-200 bg-emerald-50 text-emerald-900"
+        >
+          Upcoming: {upcomingCount}
+        </Badge>
       </div>
 
       <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">

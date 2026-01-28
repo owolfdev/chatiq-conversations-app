@@ -2,16 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
 import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
+import type { InboxCounts } from "@/types/inbox";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 import { Filter, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
+import { dispatchInboxCounts } from "@/lib/inbox-counts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +55,7 @@ export function ConversationsList({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
+  const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
 
   const sourceOptions = useMemo(() => {
     const available = Array.from(
@@ -119,6 +123,27 @@ export function ConversationsList({
     debouncedDetailQuery,
   ]);
 
+  const loadCounts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/inbox-counts", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json().catch(() => null)) as
+        | InboxCounts
+        | null;
+      if (!payload) {
+        return;
+      }
+      setInboxCounts(payload);
+      dispatchInboxCounts(payload);
+    } catch (error) {
+      console.error("Failed to load inbox counts", error);
+    }
+  }, []);
+
   useEffect(() => {
     const isStandalone =
       window.matchMedia?.("(display-mode: standalone)")?.matches ?? false;
@@ -145,6 +170,10 @@ export function ConversationsList({
   }, [loadConversations]);
 
   useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
+
+  useEffect(() => {
     const startPolling = () => {
       if (pollingRef.current !== null) {
         return;
@@ -152,6 +181,7 @@ export function ConversationsList({
       pollingRef.current = window.setInterval(() => {
         if (document.visibilityState === "visible") {
           loadConversations(true);
+          loadCounts();
         }
       }, 8000);
     };
@@ -166,6 +196,7 @@ export function ConversationsList({
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         loadConversations(true);
+        loadCounts();
         startPolling();
       } else {
         stopPolling();
@@ -185,6 +216,7 @@ export function ConversationsList({
     setIsRefreshing(true);
     try {
       await loadConversations(true);
+      await loadCounts();
     } finally {
       setIsRefreshing(false);
     }
@@ -237,6 +269,8 @@ export function ConversationsList({
     setDetailQuery("");
   };
 
+  const openCount = inboxCounts?.openConversations ?? 0;
+
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
       {standalone === false ? (
@@ -259,6 +293,12 @@ export function ConversationsList({
           value={userQuery}
           onChange={(event) => setUserQuery(event.target.value)}
         />
+        <Badge
+          variant="outline"
+          className="border-amber-200 bg-amber-50 text-amber-900"
+        >
+          Open: {openCount}
+        </Badge>
         <Button
           variant="ghost"
           size="icon"
