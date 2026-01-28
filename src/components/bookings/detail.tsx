@@ -71,6 +71,7 @@ export function BookingDetailView({ bookingId }: { bookingId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
+  const [autoMessage, setAutoMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
@@ -111,6 +112,34 @@ export function BookingDetailView({ bookingId }: { bookingId: string }) {
       isActive = false;
     };
   }, [bookingId]);
+
+  useEffect(() => {
+    if (!appointmentDate) {
+      if (message.trim() && message === autoMessage) {
+        setMessage("");
+      }
+      setAutoMessage("");
+      return;
+    }
+
+    const localDate = new Date(appointmentDate);
+    if (Number.isNaN(localDate.getTime())) return;
+
+    const formattedDate = new Intl.DateTimeFormat(undefined, {
+      month: "long",
+      day: "numeric",
+    }).format(localDate);
+    const formattedTime = new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(localDate);
+    const nextAutoMessage = `Your appointment is confirmed for ${formattedDate} at ${formattedTime}`;
+
+    if (message.trim() === "" || message === autoMessage) {
+      setMessage(nextAutoMessage);
+      setAutoMessage(nextAutoMessage);
+    }
+  }, [appointmentDate, autoMessage, message]);
 
   const customEntries = useMemo(() => {
     if (!booking?.data || typeof booking.data !== "object") return [];
