@@ -205,7 +205,7 @@ export function ConversationViewer({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<
-    NonNullable<ChatMessage["attachments"]>
+    ChatMessage["attachments"]
   >([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [agentResponses, setAgentResponses] = useState<AgentCannedResponse[]>([]);
@@ -1011,6 +1011,7 @@ export function ConversationViewer({
           targetLanguage,
           attachments: resolved.attachments,
         });
+        setShowTranslationPanel(true);
       } catch (error) {
         console.error("Failed to translate outbound message", error);
         toast.error(
@@ -1543,9 +1544,9 @@ export function ConversationViewer({
                   </>
                 )}
               </div>
-              <div className="px-4 space-y-2">
+              <div className="px-4 space-y-2 pb-2">
                 {pendingAttachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pb-2">
                     {pendingAttachments.map((attachment) => (
                       <div
                         key={attachment?.url}
@@ -1591,7 +1592,7 @@ export function ConversationViewer({
                     !standalone
                   }
                 >
-                  {translateOutbound
+                  {translateOutbound && draft.trim()
                     ? isTranslatingOutbound
                       ? "Translating..."
                       : "Preview"
