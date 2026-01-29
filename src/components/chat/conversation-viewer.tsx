@@ -77,7 +77,7 @@ export function ConversationViewer({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<
-    ChatMessage["attachments"]
+    NonNullable<ChatMessage["attachments"]>
   >([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
