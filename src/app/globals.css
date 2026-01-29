@@ -49,6 +49,8 @@
   --radius: 0.625rem;
   --background: #f8fafc;
   --foreground: #0f172a;
+  --splash-bg: #10b981;
+  --splash-image: url("/splash-bot.svg");
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
@@ -79,6 +81,7 @@
 .dark {
   --background: #020617;
   --foreground: #e2e8f0;
+  --splash-bg: #10b981;
   --card: #0f172a;
   --card-foreground: #e2e8f0;
   --popover: #0f172a;
@@ -137,6 +140,28 @@
   body.dark,
   html.dark body {
     background-color: var(--background);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-color: var(--splash-bg);
+    background-image: var(--splash-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 120px 120px;
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+    z-index: 9999;
+  }
+  html[data-app-ready="true"] body::before {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::before {
+      transition: none;
+    }
   }
   /* Remove bg-background from main since body now has the overlay */
   main.bg-background {

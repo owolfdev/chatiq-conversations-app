@@ -6,6 +6,7 @@ import { AppThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SentryInit } from "@/components/sentry-init";
+import { PwaSplash } from "@/components/pwa-splash";
 import { env } from "@/lib/env";
 import { getAppUrl } from "@/lib/email/get-app-url";
 
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s | ChatIQ Inbox",
   },
   description: "ChatIQ Inbox - a focused conversations inbox for ChatIQ",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     title: "Inbox",
@@ -102,6 +103,11 @@ export default async function RootLayout({
         className={`${plexSans.variable} ${plexMono.variable} antialiased flex flex-col min-h-screen font-main`}
       >
         <AppThemeProvider>
+          {/*
+            Sets a data attribute after hydration to fade out the CSS splash overlay.
+            This keeps a non-blank screen visible while the app boots.
+          */}
+          <PwaSplash />
           <SentryInit />
           {children}
           <Toaster />
