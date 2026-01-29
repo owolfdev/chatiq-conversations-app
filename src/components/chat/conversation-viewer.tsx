@@ -322,7 +322,7 @@ export function ConversationViewer({
     try {
       for (const file of files.slice(0, remaining)) {
         const attachment = await uploadAttachment(file);
-        setPendingAttachments((prev) => [...(prev ?? []), attachment]);
+        setPendingAttachments((prev) => [...prev, attachment]);
       }
     } catch (error) {
       toast.error(
@@ -335,7 +335,7 @@ export function ConversationViewer({
 
   const handleRemoveAttachment = (url: string) => {
     setPendingAttachments((prev) =>
-      (prev ?? []).filter((attachment) => attachment?.url !== url)
+      prev.filter((attachment) => attachment?.url !== url)
     );
   };
 
@@ -344,7 +344,7 @@ export function ConversationViewer({
       matchesAgentResponse(response, input)
     );
     const matchedAttachments = Array.isArray(match?.attachments)
-      ? match?.attachments.filter(
+      ? match!.attachments.filter(
           (item) =>
             item &&
             item.type === "image" &&
