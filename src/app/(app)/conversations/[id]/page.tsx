@@ -103,6 +103,7 @@ export default async function ConversationPage({
       <div className="flex-1 min-h-0 overflow-hidden">
         <ConversationViewer
           conversationId={conversation.id}
+          botId={bot.id}
           botName={bot.name}
           botDescription={bot.description}
           messages={messages}

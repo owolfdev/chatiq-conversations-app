@@ -108,6 +108,7 @@ export default async function ChatPage({
         <main className="grow px-3 md:px-4 pt-10 pb-10 bg-[var(--background)] min-h-screen">
           <ConversationViewer
             conversationId={conversation.id}
+            botId={bot.id}
             botName={bot.name}
             botDescription={bot.description}
             messages={messages}

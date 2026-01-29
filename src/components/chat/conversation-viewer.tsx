@@ -39,11 +39,138 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const MAX_ATTACHMENTS = 4;
+type AgentCannedResponse = {
+  id: string;
+  pattern: string;
+  pattern_type: "regex" | "keyword" | "exact";
+  response: string;
+  case_sensitive: boolean;
+  fuzzy_threshold: number;
+  attachments?: ChatMessage["attachments"];
+};
+
+const normalizeInput = (text: string, caseSensitive: boolean) => {
+  const trimmed = text.trim();
+  return caseSensitive ? trimmed : trimmed.toLowerCase();
+};
+
+const matchExact = (
+  pattern: string,
+  input: string,
+  caseSensitive: boolean
+) => {
+  return (
+    normalizeInput(pattern, caseSensitive) ===
+    normalizeInput(input, caseSensitive)
+  );
+};
+
+const matchRegex = (
+  pattern: string,
+  input: string,
+  caseSensitive: boolean
+) => {
+  try {
+    const flags = caseSensitive ? "g" : "gi";
+    const hasNonAscii = /[^\x00-\x7F]/.test(pattern);
+    let regexPattern: string;
+    if (pattern.startsWith("^") || hasNonAscii) {
+      regexPattern = pattern;
+    } else if (pattern.includes("|")) {
+      const alternatives = pattern.split("|").map((alt) => alt.trim());
+      regexPattern = alternatives.map((alt) => `\\b${alt}\\b`).join("|");
+    } else {
+      regexPattern = `\\b${pattern}\\b`;
+    }
+    const regex = new RegExp(regexPattern, flags);
+    return regex.test(input);
+  } catch (error) {
+    console.error("Invalid regex pattern:", pattern, error);
+    return false;
+  }
+};
+
+const matchKeyword = (
+  pattern: string,
+  input: string,
+  caseSensitive: boolean
+) => {
+  const normalizedInput = normalizeInput(input, caseSensitive);
+  const alternatives = pattern.split("|").map((alt) => alt.trim());
+
+  for (const alternative of alternatives) {
+    const normalizedAlt = normalizeInput(alternative, caseSensitive);
+    const keywords = normalizedAlt.split(/\s+/).filter(Boolean);
+
+    if (keywords.length === 1) {
+      const keyword = keywords[0];
+      const wordBoundaryRegex = new RegExp(
+        `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        caseSensitive ? "g" : "gi"
+      );
+      if (wordBoundaryRegex.test(normalizedInput)) {
+        return true;
+      }
+      continue;
+    }
+
+    const words = normalizedInput.split(/\s+/);
+    const keywordPositions: number[] = [];
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      for (const keyword of keywords) {
+        if (
+          word === keyword ||
+          new RegExp(
+            `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+            caseSensitive ? "g" : "gi"
+          ).test(word)
+        ) {
+          keywordPositions.push(i);
+          break;
+        }
+      }
+    }
+
+    if (keywordPositions.length !== keywords.length) {
+      continue;
+    }
+
+    keywordPositions.sort((a, b) => a - b);
+    let allClose = true;
+    for (let i = 1; i < keywordPositions.length; i++) {
+      const distance = keywordPositions[i] - keywordPositions[i - 1];
+      if (distance > 2) {
+        allClose = false;
+        break;
+      }
+    }
+
+    if (allClose) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const matchesAgentResponse = (response: AgentCannedResponse, input: string) => {
+  switch (response.pattern_type) {
+    case "regex":
+      return matchRegex(response.pattern, input, response.case_sensitive);
+    case "keyword":
+      return matchKeyword(response.pattern, input, response.case_sensitive);
+    case "exact":
+      return matchExact(response.pattern, input, response.case_sensitive);
+  }
+};
 
 const TRANSLATION_SETTINGS_KEY = "chatiq.translation.settings";
 
 interface ConversationViewerProps {
   conversationId: string;
+  botId: string;
   botName: string;
   botDescription: string | null;
   messages: ChatMessage[];
@@ -62,6 +189,7 @@ interface ConversationViewerProps {
 
 export function ConversationViewer({
   conversationId,
+  botId,
   botName,
   messages,
   conversationTopic,
@@ -80,6 +208,7 @@ export function ConversationViewer({
     NonNullable<ChatMessage["attachments"]>
   >([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [agentResponses, setAgentResponses] = useState<AgentCannedResponse[]>([]);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [status, setStatus] = useState<"resolved" | "unresolved">(
     resolutionStatus ?? "unresolved"
@@ -115,9 +244,11 @@ export function ConversationViewer({
     new Set()
   );
   const [outboundPreview, setOutboundPreview] = useState<{
+    input: string;
     original: string;
     translated: string;
     targetLanguage: string;
+    attachments: ChatMessage["attachments"];
   } | null>(null);
   const [isTranslatingInbound, setIsTranslatingInbound] = useState(false);
   const [isTranslatingOutbound, setIsTranslatingOutbound] = useState(false);
@@ -207,6 +338,59 @@ export function ConversationViewer({
       (prev ?? []).filter((attachment) => attachment?.url !== url)
     );
   };
+
+  const resolveAgentResponse = (input: string) => {
+    const match = agentResponses.find((response) =>
+      matchesAgentResponse(response, input)
+    );
+    const matchedAttachments = Array.isArray(match?.attachments)
+      ? match?.attachments.filter(
+          (item) =>
+            item &&
+            item.type === "image" &&
+            typeof item.url === "string" &&
+            item.url.trim()
+        )
+      : [];
+    const mergedAttachments = [...matchedAttachments, ...pendingAttachments].slice(
+      0,
+      MAX_ATTACHMENTS
+    );
+    return {
+      content: match?.response ?? input,
+      attachments: mergedAttachments,
+      matched: Boolean(match),
+    };
+  };
+
+  useEffect(() => {
+    if (!interactive || !botId) {
+      return;
+    }
+    let isMounted = true;
+    const fetchAgentResponses = async () => {
+      try {
+        const response = await fetch(
+          `/api/canned-responses/agent?botId=${encodeURIComponent(botId)}`,
+          { credentials: "include" }
+        );
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json().catch(() => null)) as {
+          responses?: AgentCannedResponse[];
+        } | null;
+        if (!isMounted) return;
+        setAgentResponses(payload?.responses ?? []);
+      } catch (error) {
+        console.error("Failed to load agent canned responses", error);
+      }
+    };
+    fetchAgentResponses();
+    return () => {
+      isMounted = false;
+    };
+  }, [botId, interactive]);
 
   const dedupeMessages = (items: ChatMessage[]) => {
     const seen = new Set<string>();
@@ -412,7 +596,7 @@ export function ConversationViewer({
     if (!outboundPreview) {
       return;
     }
-    if (outboundPreview.original !== draft.trim()) {
+    if (outboundPreview.input !== draft.trim()) {
       setOutboundPreview(null);
     }
   }, [draft, outboundPreview]);
@@ -752,9 +936,13 @@ export function ConversationViewer({
       return;
     }
 
+    const resolved = trimmed
+      ? resolveAgentResponse(trimmed)
+      : { content: "", attachments: pendingAttachments, matched: false };
+
     if (translateOutbound) {
-      if (!trimmed && pendingAttachments.length > 0) {
-        await sendMessage("", pendingAttachments);
+      if (!resolved.content.trim() && resolved.attachments.length > 0) {
+        await sendMessage("", resolved.attachments);
         return;
       }
       setIsTranslatingOutbound(true);
@@ -799,7 +987,7 @@ export function ConversationViewer({
           credentials: "include",
           body: JSON.stringify({
             mode: "translate",
-            text: trimmed,
+            text: resolved.content,
             targetLanguage,
           }),
         });
@@ -817,9 +1005,11 @@ export function ConversationViewer({
           throw new Error("Translation returned empty text");
         }
         setOutboundPreview({
-          original: trimmed,
+          input: trimmed,
+          original: resolved.content,
           translated,
           targetLanguage,
+          attachments: resolved.attachments,
         });
       } catch (error) {
         console.error("Failed to translate outbound message", error);
@@ -832,7 +1022,7 @@ export function ConversationViewer({
       return;
     }
 
-    await sendMessage(trimmed, pendingAttachments, trimmed);
+    await sendMessage(resolved.content, resolved.attachments, trimmed);
   };
 
   const handleSendTranslated = async () => {
@@ -841,8 +1031,9 @@ export function ConversationViewer({
     }
     const originalDraft = outboundPreview.original;
     const translated = outboundPreview.translated;
+    const attachments = outboundPreview.attachments ?? [];
     setOutboundPreview(null);
-    await sendMessage(translated, pendingAttachments, originalDraft);
+    await sendMessage(translated, attachments, originalDraft);
   };
 
   const handleSendOriginal = async () => {
@@ -850,8 +1041,9 @@ export function ConversationViewer({
       return;
     }
     const original = outboundPreview.original;
+    const attachments = outboundPreview.attachments ?? [];
     setOutboundPreview(null);
-    await sendMessage(original, pendingAttachments, original);
+    await sendMessage(original, attachments, original);
   };
 
   const toggleShowOriginal = (key: string) => {
