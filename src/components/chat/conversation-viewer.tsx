@@ -1,7 +1,7 @@
 // src/components/chat/conversation-viewer.tsx
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, UserRound } from "lucide-react";
+import { Bot, UserRound, ImagePlus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { MessageMarkdown } from "@/components/chat/message-markdown";
@@ -37,6 +37,8 @@ const LANGUAGE_OPTIONS = [
   { value: "zh", label: "Chinese" },
   { value: "th", label: "Thai" },
 ];
+
+const MAX_ATTACHMENTS = 4;
 
 const TRANSLATION_SETTINGS_KEY = "chatiq.translation.settings";
 
@@ -74,6 +76,10 @@ export function ConversationViewer({
 }: ConversationViewerProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<
+    ChatMessage["attachments"]
+  >([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [status, setStatus] = useState<"resolved" | "unresolved">(
     resolutionStatus ?? "unresolved"
@@ -89,6 +95,7 @@ export function ConversationViewer({
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageIdsRef = useRef<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(localMessages.length);
   const optimisticIdsRef = useRef<Set<string>>(new Set());
   const autoScrollRef = useRef(true);
@@ -115,6 +122,91 @@ export function ConversationViewer({
   const [isTranslatingInbound, setIsTranslatingInbound] = useState(false);
   const [isTranslatingOutbound, setIsTranslatingOutbound] = useState(false);
   const [showTranslationPanel, setShowTranslationPanel] = useState(false);
+
+  const renderImageAttachments = (attachments?: ChatMessage["attachments"]) => {
+    const images =
+      attachments?.filter(
+        (attachment) => attachment?.type === "image" && attachment.url
+      ) ?? [];
+    if (images.length === 0) return null;
+
+    return (
+      <div className="mt-2 space-y-2">
+        {images.map((image, index) => (
+          <figure key={`${image.url}-${index}`} className="space-y-1">
+            <img
+              src={image.url}
+              alt={image.alt ?? image.caption ?? "Attachment"}
+              className="rounded-lg border border-border/60 max-h-64 w-auto"
+              loading="lazy"
+            />
+            {(image.caption || image.alt) && (
+              <figcaption className="text-xs text-muted-foreground">
+                {image.caption || image.alt}
+              </figcaption>
+            )}
+          </figure>
+        ))}
+      </div>
+    );
+  };
+
+  const uploadAttachment = async (file: File) => {
+    const formData = new FormData();
+    formData.append("conversation_id", conversationId);
+    formData.append("file", file);
+    const response = await fetch("/api/conversations/attachments", {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(payload?.error || "Failed to upload image");
+    }
+    const payload = (await response.json().catch(() => null)) as {
+      attachment?: ChatMessage["attachments"] extends Array<infer T> ? T : never;
+    } | null;
+    if (!payload?.attachment) {
+      throw new Error("Upload failed");
+    }
+    return payload.attachment;
+  };
+
+  const handleAttachmentSelect = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!files.length) {
+      return;
+    }
+    const remaining = MAX_ATTACHMENTS - (pendingAttachments?.length ?? 0);
+    if (remaining <= 0) {
+      toast.error("Attachment limit reached.");
+      return;
+    }
+    setUploadingAttachments(true);
+    try {
+      for (const file of files.slice(0, remaining)) {
+        const attachment = await uploadAttachment(file);
+        setPendingAttachments((prev) => [...(prev ?? []), attachment]);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+    } finally {
+      setUploadingAttachments(false);
+    }
+  };
+
+  const handleRemoveAttachment = (url: string) => {
+    setPendingAttachments((prev) =>
+      (prev ?? []).filter((attachment) => attachment?.url !== url)
+    );
+  };
 
   const dedupeMessages = (items: ChatMessage[]) => {
     const seen = new Set<string>();
@@ -377,6 +469,7 @@ export function ConversationViewer({
           sender?: string;
           content?: string;
           created_at?: string;
+          attachments?: unknown;
         };
         if (typeof row?.content !== "string" || !row.content) {
           return;
@@ -438,6 +531,15 @@ export function ConversationViewer({
               role: role as ChatMessage["role"],
               content,
               createdAt: row.created_at,
+              attachments: Array.isArray(row.attachments)
+                ? row.attachments.filter(
+                    (item: any) =>
+                      item &&
+                      item.type === "image" &&
+                      typeof item.url === "string" &&
+                      item.url.trim()
+                  )
+                : undefined,
             },
           ];
           return dedupeMessages(next);
@@ -495,6 +597,7 @@ export function ConversationViewer({
             sender: string;
             content: string;
             created_at: string;
+            attachments?: unknown;
           }>;
         } | null;
         const rows = payload?.messages ?? [];
@@ -509,6 +612,15 @@ export function ConversationViewer({
             : "user") as ChatMessage["role"],
           content: row.content,
           createdAt: row.created_at,
+          attachments: Array.isArray(row.attachments)
+            ? row.attachments.filter(
+                (item: any) =>
+                  item &&
+                  item.type === "image" &&
+                  typeof item.url === "string" &&
+                  item.url.trim()
+              )
+            : undefined,
         }));
         setLocalMessages((prev) => {
           const optimistic: ChatMessage[] = prev.filter((msg) =>
@@ -546,9 +658,13 @@ export function ConversationViewer({
     };
   }, [conversationId, interactive]);
 
-  const sendMessage = async (content: string, restoreDraft?: string) => {
+  const sendMessage = async (
+    content: string,
+    attachments: ChatMessage["attachments"] = [],
+    restoreDraft?: string
+  ) => {
     const trimmed = content.trim();
-    if (!trimmed || sending) {
+    if ((!trimmed && (!attachments || attachments.length === 0)) || sending) {
       return;
     }
     const optimisticTimestamp = new Date().toISOString();
@@ -566,15 +682,19 @@ export function ConversationViewer({
       {
         id: `optimistic-${optimisticTimestamp}`,
         role: "assistant",
-        content: trimmed,
+        content: trimmed || "Image",
         createdAt: optimisticTimestamp,
+        attachments: attachments?.length ? attachments : undefined,
       },
     ]);
     try {
       const isLineConversation = conversationSource === "line";
+      const isInstagramConversation = conversationSource === "instagram";
       const response = await fetch(
         isLineConversation
           ? `/api/integrations/line/send`
+          : isInstagramConversation
+          ? `/api/integrations/instagram/send`
           : `/api/conversations/${conversationId}/messages`,
         {
           method: "POST",
@@ -583,13 +703,15 @@ export function ConversationViewer({
           },
           credentials: "include",
           body: JSON.stringify(
-            isLineConversation
+            isLineConversation || isInstagramConversation
               ? {
                   conversation_id: conversationId,
                   message: trimmed,
+                  attachments,
                 }
               : {
                   content: trimmed,
+                  attachments,
                 }
           ),
         }
@@ -607,6 +729,7 @@ export function ConversationViewer({
         setTakeoverUntil(payload.human_takeover_until);
       }
       setTakeoverEnabled(true);
+      setPendingAttachments([]);
       inputRef.current?.focus();
     } catch (error) {
       console.error("Failed to send LINE message", error);
@@ -625,11 +748,15 @@ export function ConversationViewer({
   const handleSend = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = draft.trim();
-    if (!trimmed || sending) {
+    if ((!trimmed && pendingAttachments.length === 0) || sending) {
       return;
     }
 
     if (translateOutbound) {
+      if (!trimmed && pendingAttachments.length > 0) {
+        await sendMessage("", pendingAttachments);
+        return;
+      }
       setIsTranslatingOutbound(true);
       try {
         let targetLanguage = translateOutboundTo;
@@ -705,7 +832,7 @@ export function ConversationViewer({
       return;
     }
 
-    await sendMessage(trimmed, trimmed);
+    await sendMessage(trimmed, pendingAttachments, trimmed);
   };
 
   const handleSendTranslated = async () => {
@@ -715,7 +842,7 @@ export function ConversationViewer({
     const originalDraft = outboundPreview.original;
     const translated = outboundPreview.translated;
     setOutboundPreview(null);
-    await sendMessage(translated, originalDraft);
+    await sendMessage(translated, pendingAttachments, originalDraft);
   };
 
   const handleSendOriginal = async () => {
@@ -724,7 +851,7 @@ export function ConversationViewer({
     }
     const original = outboundPreview.original;
     setOutboundPreview(null);
-    await sendMessage(original, original);
+    await sendMessage(original, pendingAttachments, original);
   };
 
   const toggleShowOriginal = (key: string) => {
@@ -1007,6 +1134,7 @@ export function ConversationViewer({
                           <div className="whitespace-pre-wrap break-words">
                             <MessageMarkdown content={contentToRender} />
                           </div>
+                          {renderImageAttachments(msg.attachments)}
                           {translationEntry && translateInbound && (
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                               <Badge variant="outline" className="text-[10px]">
@@ -1193,6 +1321,68 @@ export function ConversationViewer({
                   </>
                 )}
               </div>
+              <div className="px-4 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleAttachmentSelect}
+                    disabled={sending || uploadingAttachments || !standalone}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={
+                      sending ||
+                      uploadingAttachments ||
+                      pendingAttachments.length >= MAX_ATTACHMENTS ||
+                      !standalone
+                    }
+                  >
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    Add image
+                  </Button>
+                  {uploadingAttachments && (
+                    <Badge variant="outline" className="text-xs">
+                      Uploading...
+                    </Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    Max 5MB · {MAX_ATTACHMENTS} images
+                  </span>
+                </div>
+                {pendingAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {pendingAttachments.map((attachment) => (
+                      <div
+                        key={attachment?.url}
+                        className="relative h-16 w-16 overflow-hidden rounded-md border border-border/60"
+                      >
+                        <img
+                          src={attachment?.url}
+                          alt={attachment?.alt ?? "Attachment"}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-1 top-1 rounded-full bg-background/80 p-1 shadow"
+                          onClick={() =>
+                            attachment?.url &&
+                            handleRemoveAttachment(attachment.url)
+                          }
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <form
                 onSubmit={handleSend}
                 className="border-t border-border pt-3 pb-3 mt-0 flex items-center gap-2 shrink-0 bg-background px-4"
@@ -1206,7 +1396,12 @@ export function ConversationViewer({
                 />
                 <Button
                   type="submit"
-                  disabled={sending || !draft.trim() || !standalone}
+                  disabled={
+                    sending ||
+                    uploadingAttachments ||
+                    (!draft.trim() && pendingAttachments.length === 0) ||
+                    !standalone
+                  }
                 >
                   {translateOutbound
                     ? isTranslatingOutbound
@@ -1254,6 +1449,7 @@ export function ConversationViewer({
                         <div className="whitespace-pre-wrap break-words">
                           <MessageMarkdown content={msg.content} />
                         </div>
+                        {renderImageAttachments(msg.attachments)}
                         {msg.createdAt && (
                           <div
                             className={cn(

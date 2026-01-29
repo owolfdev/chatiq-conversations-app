@@ -79,21 +79,30 @@ export default async function ChatPage({
       .maybeSingle();
 
     if (!conversationError && conversation?.id) {
-      const { data: messageRows } = await supabase
-        .from("bot_messages")
-        .select("id, sender, content, created_at")
-        .eq("conversation_id", conversation.id)
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true });
+    const { data: messageRows } = await supabase
+      .from("bot_messages")
+      .select("id, sender, content, created_at, attachments")
+      .eq("conversation_id", conversation.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
 
-      const messages: ChatMessage[] = messageRows?.length
-        ? messageRows.map((row) => ({
-            id: row.id,
-            role: row.sender === "bot" ? "assistant" : "user",
-            content: row.content,
-            createdAt: row.created_at,
-          }))
-        : [];
+    const messages: ChatMessage[] = messageRows?.length
+      ? messageRows.map((row) => ({
+          id: row.id,
+          role: row.sender === "bot" ? "assistant" : "user",
+          content: row.content,
+          createdAt: row.created_at,
+          attachments: Array.isArray(row.attachments)
+            ? row.attachments.filter(
+                (item: any) =>
+                  item &&
+                  item.type === "image" &&
+                  typeof item.url === "string" &&
+                  item.url.trim()
+              )
+            : undefined,
+        }))
+      : [];
 
       return (
         <main className="grow px-3 md:px-4 pt-10 pb-10 bg-[var(--background)] min-h-screen">
