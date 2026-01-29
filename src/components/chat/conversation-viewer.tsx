@@ -1371,9 +1371,39 @@ export function ConversationViewer({
                 )}
               </div>
               <div className="border-t border-border px-4 pt-2 pb-2 space-y-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground leading-none">
-                    <span>Translation tools</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleAttachmentSelect}
+                      disabled={sending || uploadingAttachments || !standalone}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={
+                        sending ||
+                        uploadingAttachments ||
+                        pendingAttachments.length >= MAX_ATTACHMENTS ||
+                        !standalone
+                      }
+                      aria-label="Add image"
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </Button>
+                    {uploadingAttachments && (
+                      <Badge variant="outline" className="text-[10px]">
+                        Uploading...
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
                     {!showTranslationPanel && (
                       <span className="flex items-center gap-1">
                         <span
@@ -1392,15 +1422,15 @@ export function ConversationViewer({
                         />
                       </span>
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowTranslationPanel((prev) => !prev)}
+                    >
+                      {showTranslationPanel ? "Hide" : "Translate"}
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowTranslationPanel((prev) => !prev)}
-                  >
-                    {showTranslationPanel ? "Hide" : "Show"}
-                  </Button>
                 </div>
                 {showTranslationPanel && (
                   <>
@@ -1514,40 +1544,6 @@ export function ConversationViewer({
                 )}
               </div>
               <div className="px-4 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleAttachmentSelect}
-                    disabled={sending || uploadingAttachments || !standalone}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={
-                      sending ||
-                      uploadingAttachments ||
-                      pendingAttachments.length >= MAX_ATTACHMENTS ||
-                      !standalone
-                    }
-                  >
-                    <ImagePlus className="mr-2 h-4 w-4" />
-                    Add image
-                  </Button>
-                  {uploadingAttachments && (
-                    <Badge variant="outline" className="text-xs">
-                      Uploading...
-                    </Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    Max 5MB · {MAX_ATTACHMENTS} images
-                  </span>
-                </div>
                 {pendingAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {pendingAttachments.map((attachment) => (
