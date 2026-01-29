@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/types/chat";
+import type { ChatAttachment, ChatMessage } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bot, UserRound, ImagePlus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -204,9 +204,9 @@ export function ConversationViewer({
 }: ConversationViewerProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [pendingAttachments, setPendingAttachments] = useState<
-    ChatMessage["attachments"]
-  >([]);
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>(
+    []
+  );
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [agentResponses, setAgentResponses] = useState<AgentCannedResponse[]>([]);
   const [statusUpdating, setStatusUpdating] = useState(false);
