@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { MessageMarkdown } from "@/components/chat/message-markdown";
 import { Switch } from "@/components/ui/switch";
+import { getConversationSendRouteConfig } from "@/lib/conversations/send-route";
 import {
   Select,
   SelectContent,
@@ -872,32 +873,21 @@ export function ConversationViewer({
       },
     ]);
     try {
-      const isLineConversation = conversationSource === "line";
-      const isInstagramConversation = conversationSource === "instagram";
+      const { endpoint, payload: requestPayload } = getConversationSendRouteConfig(
+        conversationSource,
+        conversationId,
+        trimmed,
+        attachments
+      );
       const response = await fetch(
-        isLineConversation
-          ? `/api/integrations/line/send`
-          : isInstagramConversation
-          ? `/api/integrations/instagram/send`
-          : `/api/conversations/${conversationId}/messages`,
+        endpoint,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify(
-            isLineConversation || isInstagramConversation
-              ? {
-                  conversation_id: conversationId,
-                  message: trimmed,
-                  attachments,
-                }
-              : {
-                  content: trimmed,
-                  attachments,
-                }
-          ),
+          body: JSON.stringify(requestPayload),
         }
       );
       if (!response.ok) {
@@ -916,7 +906,7 @@ export function ConversationViewer({
       setPendingAttachments([]);
       inputRef.current?.focus();
     } catch (error) {
-      console.error("Failed to send LINE message", error);
+      console.error("Failed to send message", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to send message"
       );
