@@ -40,6 +40,10 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const MAX_ATTACHMENTS = 4;
+const CONVERSATION_MESSAGES_PAGE_SIZE = 50;
+const LOAD_OLDER_SCROLL_THRESHOLD_PX = 120;
+const INBOUND_TRANSLATION_VIEWPORT_BUFFER = 8;
+const INBOUND_TRANSLATION_FALLBACK_COUNT = 24;
 type AgentCannedResponse = {
   id: string;
   pattern: string;
@@ -48,6 +52,14 @@ type AgentCannedResponse = {
   case_sensitive: boolean;
   fuzzy_threshold: number;
   attachments?: ChatMessage["attachments"];
+};
+
+type ConversationMessageRow = {
+  id: string;
+  sender: string;
+  content: string;
+  created_at: string;
+  attachments?: unknown;
 };
 
 const normalizeInput = (text: string, caseSensitive: boolean) => {
@@ -254,6 +266,16 @@ export function ConversationViewer({
   const [isTranslatingInbound, setIsTranslatingInbound] = useState(false);
   const [isTranslatingOutbound, setIsTranslatingOutbound] = useState(false);
   const [showTranslationPanel, setShowTranslationPanel] = useState(false);
+  const messageElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const inFlightInboundTranslationKeysRef = useRef<Set<string>>(new Set());
+  const [visibleMessageKeys, setVisibleMessageKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const oldestCursorRef = useRef<{ createdAt: string; id: string } | null>(null);
+  const newestCursorRef = useRef<{ createdAt: string; id: string } | null>(null);
+  const prependScrollHeightRef = useRef<number | null>(null);
 
   const renderImageAttachments = (attachments?: ChatMessage["attachments"]) => {
     const images =
@@ -411,6 +433,70 @@ export function ConversationViewer({
   const getMessageKey = (msg: ChatMessage, index: number) =>
     msg.id ?? msg.createdAt ?? `${index}-${msg.role}`;
 
+  const setMessageElementRef = (key: string, node: HTMLDivElement | null) => {
+    if (node) {
+      messageElementsRef.current.set(key, node);
+      return;
+    }
+    messageElementsRef.current.delete(key);
+  };
+
+  const mapConversationMessage = (row: ConversationMessageRow): ChatMessage => ({
+    id: row.id,
+    role: (row.sender === "bot" ? "assistant" : "user") as ChatMessage["role"],
+    content: row.content,
+    createdAt: row.created_at,
+    attachments: Array.isArray(row.attachments)
+      ? row.attachments.filter(
+          (item: any) =>
+            item &&
+            item.type === "image" &&
+            typeof item.url === "string" &&
+            item.url.trim()
+        )
+      : undefined,
+  });
+
+  const mergePersistedRows = (
+    rows: ConversationMessageRow[],
+    mode: "replace" | "append" | "prepend"
+  ) => {
+    const persisted = rows.map(mapConversationMessage);
+    setLocalMessages((prev) => {
+      const optimistic: ChatMessage[] = prev.filter((msg) =>
+        msg.createdAt ? optimisticIdsRef.current.has(msg.createdAt) : false
+      );
+      const nonOptimistic = prev.filter(
+        (msg) => !(msg.createdAt && optimisticIdsRef.current.has(msg.createdAt))
+      );
+      const filteredOptimistic = optimistic.filter((msg) => {
+        const matched = persisted.some(
+          (row) =>
+            row.role === msg.role &&
+            row.content.trim() === msg.content.trim() &&
+            row.createdAt &&
+            msg.createdAt &&
+            Math.abs(
+              new Date(row.createdAt).getTime() - new Date(msg.createdAt).getTime()
+            ) < 10_000
+        );
+        if (matched && msg.createdAt) {
+          optimisticIdsRef.current.delete(msg.createdAt);
+        }
+        return !matched;
+      });
+
+      const base =
+        mode === "replace"
+          ? persisted
+          : mode === "prepend"
+          ? [...persisted, ...nonOptimistic]
+          : [...nonOptimistic, ...persisted];
+
+      return dedupeMessages([...base, ...filteredOptimistic]);
+    });
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -448,6 +534,28 @@ export function ConversationViewer({
   useEffect(() => {
     setLocalMessages(messages);
   }, [messages]);
+
+  useEffect(() => {
+    const persisted = localMessages.filter(
+      (msg) =>
+        msg.id &&
+        !msg.id.startsWith("optimistic-") &&
+        typeof msg.createdAt === "string"
+    );
+    messageIdsRef.current = new Set(
+      persisted
+        .map((msg) => msg.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    );
+    if (!persisted.length) {
+      newestCursorRef.current = null;
+      return;
+    }
+    const newest = persisted[persisted.length - 1];
+    if (newest?.createdAt && newest.id) {
+      newestCursorRef.current = { createdAt: newest.createdAt, id: newest.id };
+    }
+  }, [localMessages]);
 
   useEffect(() => {
     setTopic(conversationTopic || "General Inquiry");
@@ -513,11 +621,61 @@ export function ConversationViewer({
     if (!translateInbound) {
       setInboundTranslations({});
       setShowOriginalMessages(new Set());
+      inFlightInboundTranslationKeysRef.current.clear();
+      setVisibleMessageKeys(new Set());
       return;
     }
     setInboundTranslations({});
     setShowOriginalMessages(new Set());
+    inFlightInboundTranslationKeysRef.current.clear();
   }, [translateInbound, translateInboundTo]);
+
+  useEffect(() => {
+    if (!interactive || !translateInbound || !scrollRef.current) {
+      return;
+    }
+
+    const root = scrollRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleMessageKeys((prev) => {
+          const next = new Set(prev);
+          let changed = false;
+
+          for (const entry of entries) {
+            const key = entry.target.getAttribute("data-message-key");
+            if (!key) {
+              continue;
+            }
+            if (entry.isIntersecting) {
+              if (!next.has(key)) {
+                next.add(key);
+                changed = true;
+              }
+            } else if (next.has(key)) {
+              next.delete(key);
+              changed = true;
+            }
+          }
+
+          return changed ? next : prev;
+        });
+      },
+      {
+        root,
+        threshold: 0.2,
+      }
+    );
+
+    const nodes = Array.from(messageElementsRef.current.values());
+    for (const node of nodes) {
+      observer.observe(node);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [interactive, localMessages, translateInbound]);
 
   useEffect(() => {
     if (!interactive || !translateInbound) {
@@ -525,18 +683,63 @@ export function ConversationViewer({
     }
 
     const translateIncoming = async () => {
-      const candidateMessages = localMessages
-        .map((msg, index) => ({
-          key: getMessageKey(msg, index),
-          msg,
-        }))
+      const indexedMessages = localMessages.map((msg, index) => ({
+        key: getMessageKey(msg, index),
+        msg,
+        index,
+      }));
+      const candidateMessages = indexedMessages
         .filter(({ msg }) => msg.content.trim().length > 0);
+      if (!candidateMessages.length) {
+        return;
+      }
+
+      let targetKeyWindow = new Set<string>();
+      if (visibleMessageKeys.size > 0) {
+        const visibleIndexes = indexedMessages
+          .filter(({ key }) => visibleMessageKeys.has(key))
+          .map(({ index }) => index);
+
+        if (visibleIndexes.length > 0) {
+          const minVisible = Math.min(...visibleIndexes);
+          const maxVisible = Math.max(...visibleIndexes);
+          const windowStart = Math.max(
+            0,
+            minVisible - INBOUND_TRANSLATION_VIEWPORT_BUFFER
+          );
+          const windowEnd = Math.min(
+            indexedMessages.length - 1,
+            maxVisible + INBOUND_TRANSLATION_VIEWPORT_BUFFER
+          );
+
+          for (let i = windowStart; i <= windowEnd; i += 1) {
+            targetKeyWindow.add(indexedMessages[i].key);
+          }
+        }
+      }
+
+      if (targetKeyWindow.size === 0) {
+        const fallbackStart = Math.max(
+          0,
+          indexedMessages.length - INBOUND_TRANSLATION_FALLBACK_COUNT
+        );
+        for (let i = fallbackStart; i < indexedMessages.length; i += 1) {
+          targetKeyWindow.add(indexedMessages[i].key);
+        }
+      }
+
       const pending = candidateMessages.filter(
-        ({ key }) => inboundTranslations[key] === undefined
+        ({ key }) =>
+          targetKeyWindow.has(key) &&
+          inboundTranslations[key] === undefined &&
+          !inFlightInboundTranslationKeysRef.current.has(key)
       );
       if (!pending.length) {
         return;
       }
+      pending.forEach(({ key }) => {
+        inFlightInboundTranslationKeysRef.current.add(key);
+      });
 
       setIsTranslatingInbound(true);
       try {
@@ -580,6 +783,9 @@ export function ConversationViewer({
           error instanceof Error ? error.message : "Inbound translation failed"
         );
       } finally {
+        pending.forEach(({ key }) => {
+          inFlightInboundTranslationKeysRef.current.delete(key);
+        });
         setIsTranslatingInbound(false);
       }
     };
@@ -591,6 +797,7 @@ export function ConversationViewer({
     localMessages,
     translateInbound,
     translateInboundTo,
+    visibleMessageKeys,
   ]);
 
   useEffect(() => {
@@ -601,6 +808,24 @@ export function ConversationViewer({
       setOutboundPreview(null);
     }
   }, [draft, outboundPreview]);
+
+  useEffect(() => {
+    if (prependScrollHeightRef.current === null) {
+      return;
+    }
+    const container = scrollRef.current;
+    if (!container) {
+      prependScrollHeightRef.current = null;
+      return;
+    }
+    const previousHeight = prependScrollHeightRef.current;
+    prependScrollHeightRef.current = null;
+    const nextHeight = container.scrollHeight;
+    const delta = nextHeight - previousHeight;
+    if (delta > 0) {
+      container.scrollTop += delta;
+    }
+  }, [localMessages]);
 
   useEffect(() => {
     if (!interactive) {
@@ -766,82 +991,152 @@ export function ConversationViewer({
       return;
     }
 
+    setHasOlderMessages(false);
+    setIsLoadingOlderMessages(false);
+    oldestCursorRef.current = null;
+    newestCursorRef.current = null;
+
     let isMounted = true;
-    const fetchMessages = async () => {
+    const fetchMessagesPage = async (params: URLSearchParams) => {
+      const response = await fetch(
+        `/api/conversations/${conversationId}/messages?${params.toString()}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) {
+        return null;
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        messages?: ConversationMessageRow[];
+        hasMore?: boolean;
+        nextBefore?: string | null;
+        nextBeforeId?: string | null;
+      } | null;
+      return payload;
+    };
+
+    const fetchInitialMessages = async () => {
       try {
-        const response = await fetch(
-          `/api/conversations/${conversationId}/messages`,
-          { credentials: "include" }
-        );
-        if (!response.ok) {
-          return;
-        }
-        const payload = (await response.json().catch(() => null)) as {
-          messages?: Array<{
-            id: string;
-            sender: string;
-            content: string;
-            created_at: string;
-            attachments?: unknown;
-          }>;
-        } | null;
-        const rows = payload?.messages ?? [];
-        if (!rows.length || !isMounted) {
-          return;
-        }
-        messageIdsRef.current = new Set(rows.map((row) => row.id));
-        const persisted: ChatMessage[] = rows.map((row) => ({
-          id: row.id,
-          role: (row.sender === "bot"
-            ? "assistant"
-            : "user") as ChatMessage["role"],
-          content: row.content,
-          createdAt: row.created_at,
-          attachments: Array.isArray(row.attachments)
-            ? row.attachments.filter(
-                (item: any) =>
-                  item &&
-                  item.type === "image" &&
-                  typeof item.url === "string" &&
-                  item.url.trim()
-              )
-            : undefined,
-        }));
-        setLocalMessages((prev) => {
-          const optimistic: ChatMessage[] = prev.filter((msg) =>
-            msg.createdAt ? optimisticIdsRef.current.has(msg.createdAt) : false
-          );
-          const filteredOptimistic = optimistic.filter((msg) => {
-            const matched = persisted.some(
-              (row) =>
-                row.role === msg.role &&
-                row.content.trim() === msg.content.trim() &&
-                row.createdAt &&
-                msg.createdAt &&
-                Math.abs(
-                  new Date(row.createdAt).getTime() -
-                    new Date(msg.createdAt).getTime()
-                ) < 10_000
-            );
-            if (matched && msg.createdAt) {
-              optimisticIdsRef.current.delete(msg.createdAt);
-            }
-            return !matched;
-          });
-          return dedupeMessages([...persisted, ...filteredOptimistic]);
+        const params = new URLSearchParams({
+          limit: String(CONVERSATION_MESSAGES_PAGE_SIZE),
         });
+        const payload = await fetchMessagesPage(params);
+        if (!payload || !isMounted) {
+          return;
+        }
+        const rows = payload?.messages ?? [];
+        mergePersistedRows(rows, "replace");
+        if (payload?.hasMore && payload.nextBefore && payload.nextBeforeId) {
+          oldestCursorRef.current = {
+            createdAt: payload.nextBefore,
+            id: payload.nextBeforeId,
+          };
+          setHasOlderMessages(true);
+        } else {
+          oldestCursorRef.current = null;
+          setHasOlderMessages(false);
+        }
       } catch (error) {
         console.error("Failed to poll messages", error);
       }
     };
 
-    fetchMessages();
-    const interval = window.setInterval(fetchMessages, 5000);
+    const pollNewMessages = async () => {
+      try {
+        const params = new URLSearchParams({
+          limit: String(CONVERSATION_MESSAGES_PAGE_SIZE),
+        });
+        const cursor = newestCursorRef.current;
+        if (cursor?.createdAt) {
+          params.set("since", cursor.createdAt);
+          if (cursor.id) {
+            params.set("sinceId", cursor.id);
+          }
+        }
+        const payload = await fetchMessagesPage(params);
+        if (!payload || !isMounted) {
+          return;
+        }
+        const rows = payload?.messages ?? [];
+        if (!rows.length) {
+          return;
+        }
+        mergePersistedRows(rows, "append");
+      } catch (error) {
+        console.error("Failed to poll messages", error);
+      }
+    };
+
+    fetchInitialMessages();
+    const interval = window.setInterval(pollNewMessages, 5000);
     return () => {
       isMounted = false;
       window.clearInterval(interval);
     };
   }, [conversationId, interactive]);
+
+  const loadOlderMessages = async () => {
+    if (!interactive || isLoadingOlderMessages || !hasOlderMessages) {
+      return;
+    }
+    const cursor = oldestCursorRef.current;
+    if (!cursor) {
+      setHasOlderMessages(false);
+      return;
+    }
+
+    setIsLoadingOlderMessages(true);
+    try {
+      const params = new URLSearchParams({
+        limit: String(CONVERSATION_MESSAGES_PAGE_SIZE),
+        before: cursor.createdAt,
+      });
+      if (cursor.id) {
+        params.set("beforeId", cursor.id);
+      }
+      const response = await fetch(
+        `/api/conversations/${conversationId}/messages?${params.toString()}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to load older messages");
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        messages?: ConversationMessageRow[];
+        hasMore?: boolean;
+        nextBefore?: string | null;
+        nextBeforeId?: string | null;
+      } | null;
+      const rows = payload?.messages ?? [];
+      if (!rows.length) {
+        oldestCursorRef.current = null;
+        setHasOlderMessages(false);
+        return;
+      }
+
+      if (scrollRef.current) {
+        prependScrollHeightRef.current = scrollRef.current.scrollHeight;
+      }
+      mergePersistedRows(rows, "prepend");
+
+      if (payload?.hasMore && payload.nextBefore && payload.nextBeforeId) {
+        oldestCursorRef.current = {
+          createdAt: payload.nextBefore,
+          id: payload.nextBeforeId,
+        };
+        setHasOlderMessages(true);
+      } else {
+        oldestCursorRef.current = null;
+        setHasOlderMessages(false);
+      }
+    } catch (error) {
+      console.error("Failed to load older messages", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load older messages"
+      );
+    } finally {
+      setIsLoadingOlderMessages(false);
+    }
+  };
 
   const sendMessage = async (
     content: string,
@@ -1272,8 +1567,28 @@ export function ConversationViewer({
                       container.clientHeight <=
                     80;
                   autoScrollRef.current = nearBottom;
+                  if (
+                    container.scrollTop <= LOAD_OLDER_SCROLL_THRESHOLD_PX &&
+                    hasOlderMessages &&
+                    !isLoadingOlderMessages
+                  ) {
+                    void loadOlderMessages();
+                  }
                 }}
               >
+                {hasOlderMessages ? (
+                  <div className="flex justify-center pb-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={isLoadingOlderMessages}
+                      onClick={() => void loadOlderMessages()}
+                    >
+                      {isLoadingOlderMessages ? "Loading older..." : "Load older"}
+                    </Button>
+                  </div>
+                ) : null}
                 {localMessages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     No messages in this conversation
@@ -1293,6 +1608,8 @@ export function ConversationViewer({
                     return (
                       <div
                         key={msg.id ?? msg.createdAt ?? idx}
+                        ref={(node) => setMessageElementRef(messageKey, node)}
+                        data-message-key={messageKey}
                         className={cn("flex items-start gap-3", {
                           "justify-end": isUser,
                           "justify-start": !isUser,

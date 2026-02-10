@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const INITIAL_CONVERSATION_MESSAGES_LIMIT = 50;
+
 interface ChatPageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ conversationId?: string; conversation_id?: string }>;
@@ -83,11 +85,14 @@ export default async function ChatPage({
       .from("bot_messages")
       .select("id, sender, content, created_at, attachments")
       .eq("conversation_id", conversation.id)
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(INITIAL_CONVERSATION_MESSAGES_LIMIT);
 
-    const messages: ChatMessage[] = messageRows?.length
-      ? messageRows.map((row) => ({
+    const orderedRows = messageRows ? [...messageRows].reverse() : [];
+
+    const messages: ChatMessage[] = orderedRows.length
+      ? orderedRows.map((row) => ({
           id: row.id,
           role: row.sender === "bot" ? "assistant" : "user",
           content: row.content,
