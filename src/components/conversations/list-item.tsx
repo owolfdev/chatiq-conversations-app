@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ConversationListItem } from "@/types/conversations";
+import { getCustomerProfile } from "@/lib/conversations/get-customer-profile";
 import { Trash2 } from "lucide-react";
 
 interface ConversationListItemProps {
@@ -73,28 +74,6 @@ const getTopicTint = (topic: string) => {
   return "border-border text-muted-foreground";
 };
 
-const getCustomerProfile = (
-  sourceDetail: ConversationListItem["source_detail"]
-) => {
-  if (!sourceDetail || typeof sourceDetail !== "object") {
-    return { name: "Customer", avatarUrl: null };
-  }
-  const detail = sourceDetail as Record<string, unknown>;
-  const name =
-    typeof detail.line_display_name === "string"
-      ? detail.line_display_name
-      : typeof detail.customer_name === "string"
-      ? detail.customer_name
-      : typeof detail.label === "string"
-      ? detail.label
-      : "Customer";
-  const avatarUrl =
-    typeof detail.line_picture_url === "string"
-      ? detail.line_picture_url
-      : null;
-  return { name, avatarUrl };
-};
-
 export function ConversationListItemCard({
   conversation,
   onDelete,
@@ -107,7 +86,9 @@ export function ConversationListItemCard({
     conversation.topic_message_preview,
     conversation.title || "Conversation"
   );
-  const { name, avatarUrl } = getCustomerProfile(conversation.source_detail);
+  const customer = getCustomerProfile(conversation.source_detail);
+  const name = customer?.name ?? "—";
+  const avatarUrl = customer?.avatarUrl ?? null;
   const statusLabel =
     conversation.resolution_status === "resolved" ? "Resolved" : "Open";
   const statusClass =
@@ -131,7 +112,9 @@ export function ConversationListItemCard({
         >
           <Avatar className="h-9 w-9">
             <AvatarImage src={avatarUrl || undefined} alt={name} />
-            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {name === "—" ? "—" : name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="min-w-0">

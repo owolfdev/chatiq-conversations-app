@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label";
 import type { ConversationListItem } from "@/types/conversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
+import { getCustomerProfile } from "@/lib/conversations/get-customer-profile";
 
 interface ConversationsClientProps {
   initialConversations: ConversationListItem[];
@@ -239,25 +240,6 @@ export default function ConversationsClient({
       return trimmed;
     }
     return `${trimmed.slice(0, 140)}…`;
-  };
-
-  const getCustomerProfile = (sourceDetail: ConversationListItem["source_detail"]) => {
-    if (!sourceDetail || typeof sourceDetail !== "object") {
-      return null;
-    }
-    const detail = sourceDetail as Record<string, unknown>;
-    const name =
-      typeof detail.line_display_name === "string"
-        ? detail.line_display_name
-        : null;
-    const avatarUrl =
-      typeof detail.line_picture_url === "string"
-        ? detail.line_picture_url
-        : null;
-    if (!name && !avatarUrl) {
-      return null;
-    }
-    return { name: name || "Customer", avatarUrl };
   };
 
   const sourceOptions = [
@@ -900,7 +882,9 @@ export default function ConversationsClient({
                               alt={customer.name}
                             />
                             <AvatarFallback>
-                              {customer.name.slice(0, 2).toUpperCase()}
+                              {customer.name === "—"
+                                ? "—"
+                                : customer.name.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span>{customer.name}</span>
