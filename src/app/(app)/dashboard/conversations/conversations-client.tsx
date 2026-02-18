@@ -812,7 +812,14 @@ export default function ConversationsClient({
               </TableRow>
             ) : (
               conversations.map((conv) => (
-                <TableRow key={conv.id}>
+                <TableRow
+                  key={conv.id}
+                  className={
+                    conv.has_unread
+                      ? "bg-amber-50/70 hover:bg-amber-100/70 dark:bg-amber-950/20 dark:hover:bg-amber-900/30"
+                      : undefined
+                  }
+                >
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.has(conv.id)}
@@ -826,7 +833,15 @@ export default function ConversationsClient({
                           href={`/chat/${conv.bot_slug}?conversationId=${conv.id}`}
                           className="hover:underline"
                         >
-                          {conv.topic || "General Inquiry"}
+                          <span className="inline-flex items-center gap-2">
+                            {conv.has_unread ? (
+                              <span
+                                className="h-2 w-2 rounded-full bg-amber-500"
+                                aria-label="Unread conversation"
+                              />
+                            ) : null}
+                            {conv.topic || "General Inquiry"}
+                          </span>
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent

@@ -13,4 +13,5 @@ export interface ConversationListItem {
   bot_slug: string;
   message_count: number;
   last_message_at: string | null;
+  has_unread: boolean;
 }
