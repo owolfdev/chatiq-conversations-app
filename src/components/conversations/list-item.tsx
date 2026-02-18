@@ -97,9 +97,14 @@ export function ConversationListItemCard({
       : "border-amber-200 bg-amber-50 text-amber-900";
   const topicLabel = conversation.topic || "General Inquiry";
   const topicTint = getTopicTint(topicLabel);
+  const unreadCardClass = conversation.has_unread
+    ? "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:bg-amber-900/30"
+    : "border-border bg-card hover:border-emerald-200";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+    <div
+      className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${unreadCardClass}`}
+    >
       <div className="flex items-start gap-3">
         <Link
           href={`/conversations/${conversation.id}`}
@@ -119,6 +124,12 @@ export function ConversationListItemCard({
           <div className="min-w-0 flex-1">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
+                {conversation.has_unread ? (
+                  <span
+                    className="h-2 w-2 rounded-full bg-amber-500"
+                    aria-label="Unread conversation"
+                  />
+                ) : null}
                 <div className="truncate text-lg font-semibold">{name}</div>
                 {opening ? (
                   <span className="text-xs text-muted-foreground">Opening...</span>
