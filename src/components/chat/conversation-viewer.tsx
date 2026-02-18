@@ -518,6 +518,7 @@ export function ConversationViewer({
   };
 
   const displayCustomerName = customerName || "Customer";
+  const customerInitials = customerName?.trim().slice(0, 2).toUpperCase();
   const botAvatarUrl = "/images/avatars/icon-512.jpg";
   const takeoverExpiry = takeoverUntil ? new Date(takeoverUntil) : null;
   const takeoverActive =
@@ -1669,7 +1670,11 @@ export function ConversationViewer({
                               alt={displayCustomerName}
                             />
                             <AvatarFallback>
-                              {displayCustomerName.slice(0, 2).toUpperCase()}
+                              {customerInitials ? (
+                                customerInitials
+                              ) : (
+                                <UserRound className="h-4 w-4" aria-hidden="true" />
+                              )}
                             </AvatarFallback>
                           </Avatar>
                         )}
@@ -1964,7 +1969,11 @@ export function ConversationViewer({
                             alt={displayCustomerName}
                           />
                           <AvatarFallback>
-                            {displayCustomerName.slice(0, 2).toUpperCase()}
+                            {customerInitials ? (
+                              customerInitials
+                            ) : (
+                              <UserRound className="h-4 w-4" aria-hidden="true" />
+                            )}
                           </AvatarFallback>
                         </Avatar>
                       )}

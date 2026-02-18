@@ -16,26 +16,6 @@ interface ConversationListItemProps {
   opening?: boolean;
 }
 
-const formatTime = (value: string | null) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  if (sameDay) {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-};
-
 const formatPreview = (value: string | null, fallback: string) => {
   const text = value?.trim() || fallback;
   if (!text) return "No messages yet.";
@@ -51,10 +31,10 @@ const getTopicTint = (topic: string) => {
     normalized.includes("payment issue") ||
     normalized.includes("needs immediate attention")
   ) {
-    return "border-red-200 bg-red-50 text-red-800";
+    return "bg-red-500";
   }
   if (normalized.includes("needs human")) {
-    return "border-amber-200 bg-amber-50 text-amber-800";
+    return "bg-amber-500";
   }
   if (
     normalized.includes("booking inquiry") ||
@@ -63,15 +43,15 @@ const getTopicTint = (topic: string) => {
     normalized.includes("pricing") ||
     normalized.includes("product inquiry")
   ) {
-    return "border-blue-200 bg-blue-50 text-blue-800";
+    return "bg-blue-500";
   }
   if (normalized.includes("resolved")) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    return "bg-emerald-500";
   }
   if (normalized.includes("greeting")) {
-    return "border-border text-muted-foreground";
+    return "bg-slate-400";
   }
-  return "border-border text-muted-foreground";
+  return "bg-slate-400";
 };
 
 export function ConversationListItemCard({
@@ -81,20 +61,18 @@ export function ConversationListItemCard({
   deleting = false,
   opening = false,
 }: ConversationListItemProps) {
-  const lastSeen = conversation.last_message_at || conversation.created_at;
   const preview = formatPreview(
     conversation.topic_message_preview,
     conversation.title || "Conversation"
   );
   const customer = getCustomerProfile(conversation.source_detail);
-  const name = customer?.name ?? "—";
+  const name = customer?.name?.trim() || conversation.bot_name || "—";
   const avatarUrl = customer?.avatarUrl ?? null;
-  const statusLabel =
-    conversation.resolution_status === "resolved" ? "Resolved" : "Open";
-  const statusClass =
+  const statusLabel = conversation.resolution_status === "resolved" ? "Resolved" : "Open";
+  const statusDotClass =
     conversation.resolution_status === "resolved"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : "border-amber-200 bg-amber-50 text-amber-900";
+      ? "bg-emerald-500"
+      : "bg-amber-500";
   const topicLabel = conversation.topic || "General Inquiry";
   const topicTint = getTopicTint(topicLabel);
   const unreadCardClass = conversation.has_unread
@@ -103,19 +81,19 @@ export function ConversationListItemCard({
 
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm transition hover:shadow-md ${unreadCardClass}`}
+      className={`rounded-xl border p-3 shadow-sm transition hover:shadow-md ${unreadCardClass}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <Link
           href={`/conversations/${conversation.id}`}
-          className="flex min-w-0 flex-1 items-start gap-3 transition-transform active:scale-[0.99]"
+          className="flex min-w-0 flex-1 items-start gap-2.5 transition-transform active:scale-[0.99]"
           onClick={() => {
             if (!opening) {
               onOpen();
             }
           }}
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             <AvatarImage src={avatarUrl || undefined} alt={name} />
             <AvatarFallback>
               {name === "—" ? "—" : name.slice(0, 2).toUpperCase()}
@@ -130,32 +108,31 @@ export function ConversationListItemCard({
                     aria-label="Unread conversation"
                   />
                 ) : null}
-                <div className="truncate text-lg font-semibold">{name}</div>
+                <div className="truncate text-base font-semibold">{name}</div>
                 {opening ? (
                   <span className="text-xs text-muted-foreground">Opening...</span>
                 ) : null}
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={`text-sm ${statusClass}`}>
-                  {statusLabel}
-                </Badge>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${statusDotClass}`}
+                  aria-label={`Status: ${statusLabel}`}
+                  title={`Status: ${statusLabel}`}
+                />
+                <span
+                  className={`h-2.5 w-2.5 rounded-sm ${topicTint}`}
+                  aria-label={`Topic: ${topicLabel}`}
+                  title={`Topic: ${topicLabel}`}
+                />
                 {conversation.source ? (
                   <Badge
                     variant="outline"
-                    className="text-sm capitalize text-muted-foreground"
+                    className="px-1.5 py-0 text-[11px] capitalize text-muted-foreground"
                   >
                     {conversation.source}
                   </Badge>
                 ) : null}
-                <Badge variant="outline" className="text-sm text-muted-foreground">
-                  {formatTime(lastSeen)}
-                </Badge>
               </div>
-            </div>
-            <div className="mt-2">
-              <Badge variant="outline" className={`text-sm ${topicTint}`}>
-                {topicLabel}
-              </Badge>
             </div>
             <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
               {preview}
