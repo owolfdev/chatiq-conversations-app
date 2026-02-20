@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ConversationListItem } from "@/types/conversations";
 import { getCustomerProfile } from "@/lib/conversations/get-customer-profile";
-import { Trash2 } from "lucide-react";
+import {
+  getTopicBadgeClass,
+  getTopicShortLabel,
+} from "@/lib/conversations/topic-display";
+import { MoreVertical } from "lucide-react";
 
 interface ConversationListItemProps {
   conversation: ConversationListItem;
@@ -23,37 +34,6 @@ const formatPreview = (value: string | null, fallback: string) => {
   return `${text.slice(0, 160)}…`;
 };
 
-const getTopicTint = (topic: string) => {
-  const normalized = topic.toLowerCase();
-  if (
-    normalized.includes("cancel") ||
-    normalized.includes("complaint") ||
-    normalized.includes("payment issue") ||
-    normalized.includes("needs immediate attention")
-  ) {
-    return "bg-red-500";
-  }
-  if (normalized.includes("needs human")) {
-    return "bg-amber-500";
-  }
-  if (
-    normalized.includes("booking inquiry") ||
-    normalized.includes("availability hours") ||
-    normalized.includes("order status") ||
-    normalized.includes("pricing") ||
-    normalized.includes("product inquiry")
-  ) {
-    return "bg-blue-500";
-  }
-  if (normalized.includes("resolved")) {
-    return "bg-emerald-500";
-  }
-  if (normalized.includes("greeting")) {
-    return "bg-slate-400";
-  }
-  return "bg-slate-400";
-};
-
 export function ConversationListItemCard({
   conversation,
   onDelete,
@@ -61,6 +41,7 @@ export function ConversationListItemCard({
   deleting = false,
   opening = false,
 }: ConversationListItemProps) {
+  const router = useRouter();
   const preview = formatPreview(
     conversation.topic_message_preview,
     conversation.title || "Conversation"
@@ -74,7 +55,8 @@ export function ConversationListItemCard({
       ? "bg-emerald-500"
       : "bg-amber-500";
   const topicLabel = conversation.topic || "General Inquiry";
-  const topicTint = getTopicTint(topicLabel);
+  const topicShortLabel = getTopicShortLabel(topicLabel);
+  const topicBadgeClass = getTopicBadgeClass(topicLabel);
   const unreadCardClass = conversation.has_unread
     ? "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:bg-amber-900/30"
     : "border-border bg-card hover:border-emerald-200";
@@ -119,11 +101,14 @@ export function ConversationListItemCard({
                   aria-label={`Status: ${statusLabel}`}
                   title={`Status: ${statusLabel}`}
                 />
-                <span
-                  className={`h-2.5 w-2.5 rounded-sm ${topicTint}`}
+                <Badge
+                  variant="outline"
+                  className={`px-1.5 py-0 text-[11px] ${topicBadgeClass}`}
                   aria-label={`Topic: ${topicLabel}`}
                   title={`Topic: ${topicLabel}`}
-                />
+                >
+                  {topicShortLabel}
+                </Badge>
                 {conversation.source ? (
                   <Badge
                     variant="outline"
@@ -139,20 +124,37 @@ export function ConversationListItemCard({
             </div>
           </div>
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Delete conversation"
-          className="text-muted-foreground hover:text-destructive"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onDelete(conversation.id);
-          }}
-          disabled={deleting}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Conversation actions"
+              className="text-muted-foreground"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                if (!opening) {
+                  onOpen();
+                }
+                router.push(`/conversations/${conversation.id}`);
+              }}
+            >
+              Open
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => onDelete(conversation.id)}
+              disabled={deleting}
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

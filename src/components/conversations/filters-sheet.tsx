@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getTopicShortLabel } from "@/lib/conversations/topic-display";
 import {
   Select,
   SelectContent,
@@ -111,7 +112,7 @@ export function FiltersSheet({
                 <SelectItem value="all">All Topics</SelectItem>
                 {topics.map((topic) => (
                   <SelectItem key={topic} value={topic}>
-                    {topic}
+                    {getTopicShortLabel(topic)}
                   </SelectItem>
                 ))}
               </SelectContent>
