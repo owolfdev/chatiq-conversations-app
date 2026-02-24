@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { MessageSquare, CalendarDays } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
@@ -41,14 +40,8 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 py-24 text-center">
-        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-white shadow-md">
-          <Image
-            src="/icon-512.png"
-            alt="Chatiq logo"
-            width={56}
-            height={56}
-            className="h-full w-full object-cover"
-          />
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-md">
+          <MessageSquare className="h-7 w-7" />
         </div>
         <h1 className="mt-6 text-5xl font-extrabold tracking-tight sm:text-6xl">
           Chatiq Inbox

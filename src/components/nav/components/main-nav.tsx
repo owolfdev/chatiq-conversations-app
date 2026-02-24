@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, CalendarDays, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -70,14 +69,9 @@ export default function MainNav({ user }: MainNavProps) {
           <div className="flex items-center gap-6">
             <Link href={homeHref} className="flex items-center gap-2">
               <span className="relative">
-                <Image
-                  src="/icon-192.png"
-                  alt="ChatIQ Inbox"
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 rounded"
-                  priority
-                />
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-600 text-white">
+                  <MessageSquare className="h-4 w-4" />
+                </span>
                 {logoBadge ? (
                   <span className="absolute -right-2 -top-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white shadow">
                     {logoBadge}
