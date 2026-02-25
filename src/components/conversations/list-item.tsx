@@ -103,7 +103,7 @@ export function ConversationListItemCard({
                 />
                 <Badge
                   variant="outline"
-                  className={`px-1.5 py-0 text-[11px] ${topicBadgeClass}`}
+                  className={`px-1.5 py-0 text-sm ${topicBadgeClass}`}
                   aria-label={`Topic: ${topicLabel}`}
                   title={`Topic: ${topicLabel}`}
                 >
@@ -112,7 +112,7 @@ export function ConversationListItemCard({
                 {conversation.source ? (
                   <Badge
                     variant="outline"
-                    className="px-1.5 py-0 text-[11px] capitalize text-muted-foreground"
+                    className="px-1.5 py-0 text-sm capitalize text-muted-foreground"
                   >
                     {conversation.source}
                   </Badge>

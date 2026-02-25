@@ -44,7 +44,7 @@ export default async function HomePage() {
           <MessageSquare className="h-7 w-7" />
         </div>
         <h1 className="mt-6 text-5xl font-extrabold tracking-tight sm:text-6xl">
-          Chatiq Inbox
+          ChatIQ Inbox
         </h1>
         <p className="mt-4 text-base text-muted-foreground sm:text-lg">
           A dedicated, mobile-first view of active customer conversations. Jump
