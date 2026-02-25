@@ -316,6 +316,7 @@ export function ConversationsList({
         >
           <RefreshCcw
             className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            style={isRefreshing ? { animationDirection: "reverse" } : undefined}
           />
         </Button>
       </div>
