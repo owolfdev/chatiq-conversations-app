@@ -48,6 +48,7 @@ import type { ConversationListItem } from "@/types/conversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
 import { getCustomerProfile } from "@/lib/conversations/get-customer-profile";
+import { deriveTopicFilterOptions } from "@/lib/conversations/topic-options";
 
 interface ConversationsClientProps {
   initialConversations: ConversationListItem[];
@@ -257,18 +258,15 @@ export default function ConversationsClient({
       })),
   ];
 
-  const topicOptions = [
-    "Greeting / Small Talk",
-    "Booking / Reservation / Appointment",
-    "Availability / Hours / Location",
-    "Pricing / Fees / Quotes",
-    "Order Status / ETA",
-    "Cancellation / Reschedule / Refunds",
-    "Complaint / Dissatisfaction",
-    "Product / Service Inquiry",
-    "Payment Issues",
-    "General Inquiry",
-  ];
+  const topicOptions = (() => {
+    const options = deriveTopicFilterOptions(
+      conversations.map((conversation) => conversation.topic)
+    );
+    if (selectedTopic !== "all" && !options.includes(selectedTopic)) {
+      return [selectedTopic, ...options];
+    }
+    return options;
+  })();
 
   const handleSort = (
     key:

@@ -10,7 +10,6 @@ import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
 import type { InboxCounts } from "@/types/inbox";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
-import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 import { Filter, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
@@ -70,6 +69,20 @@ export function ConversationsList({
         label: source as string,
       }));
     return [...CONVERSATION_SOURCE_OPTIONS, ...available];
+  }, [conversations]);
+
+  const topicOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        conversations
+          .map((conversation) =>
+            typeof conversation.topic === "string"
+              ? conversation.topic.trim()
+              : ""
+          )
+          .filter((topic) => topic.length > 0)
+      )
+    );
   }, [conversations]);
 
   const loadConversations = useCallback(async (silent = false) => {
@@ -402,7 +415,7 @@ export function ConversationsList({
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
         bots={initialBots}
-        topics={TOPIC_LABELS}
+        topics={topicOptions}
         sources={sourceOptions}
         selectedBot={selectedBot}
         onBotChange={setSelectedBot}

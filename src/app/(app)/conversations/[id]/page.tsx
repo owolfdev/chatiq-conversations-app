@@ -73,6 +73,20 @@ export default async function ConversationPage({
     notFound();
   }
 
+  const { data: topicRows } = await supabase
+    .from("bot_topic_definitions")
+    .select("label")
+    .eq("bot_id", bot.id)
+    .eq("enabled", true)
+    .order("priority", { ascending: true });
+  const topicOptions = Array.from(
+    new Set(
+      (topicRows ?? [])
+        .map((row) => row.label)
+        .filter((label): label is string => Boolean(label && label.trim()))
+    )
+  );
+
   const { data: messageRows } = await supabase
     .from("bot_messages")
     .select("id, sender, content, created_at, attachments")
@@ -128,6 +142,7 @@ export default async function ConversationPage({
           }
           humanTakeover={conversation.human_takeover}
           humanTakeoverUntil={conversation.human_takeover_until}
+          topicOptions={topicOptions}
           interactive
           backHref={backHref}
         />

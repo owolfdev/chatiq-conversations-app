@@ -10,12 +10,18 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { ChatAttachment, ChatMessage } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, UserRound, ImagePlus, X } from "lucide-react";
+import { Bot, UserRound, ImagePlus, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 import { MessageMarkdown } from "@/components/chat/message-markdown";
 import { Switch } from "@/components/ui/switch";
 import { getConversationSendRouteConfig } from "@/lib/conversations/send-route";
+import {
+  BOT_TOPICS_CACHE_TTL_MS,
+  getMergedTopicLabels,
+  parseBotTopicsPayload,
+  type BotTopicOption,
+} from "@/lib/conversations/topic-options";
 import {
   Select,
   SelectContent,
@@ -23,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TOPIC_LABELS } from "@/lib/conversations/topic-classifier";
 
 const LANGUAGE_OPTIONS = [
   { value: "auto", label: "Auto (detect)" },
@@ -181,6 +186,42 @@ const matchesAgentResponse = (response: AgentCannedResponse, input: string) => {
 
 const TRANSLATION_SETTINGS_KEY = "chatiq.translation.settings";
 
+const botTopicsCache = new Map<
+  string,
+  { expiresAt: number; topics: BotTopicOption[] }
+>();
+
+const getBotTopicOptions = async ({
+  botId,
+  force = false,
+}: {
+  botId: string;
+  force?: boolean;
+}): Promise<BotTopicOption[]> => {
+  const now = Date.now();
+  const cached = botTopicsCache.get(botId);
+  if (!force && cached && cached.expiresAt > now) {
+    return cached.topics;
+  }
+
+  const response = await fetch(`/api/bots/${botId}/topics?enabled=true`, {
+    credentials: "include",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | null;
+  if (!response.ok) {
+    throw new Error(payload?.error || "Failed to load topics");
+  }
+
+  const parsed = parseBotTopicsPayload(payload);
+  botTopicsCache.set(botId, {
+    topics: parsed,
+    expiresAt: now + BOT_TOPICS_CACHE_TTL_MS,
+  });
+  return parsed;
+};
+
 interface ConversationViewerProps {
   conversationId: string;
   botId: string;
@@ -196,6 +237,7 @@ interface ConversationViewerProps {
   customerStatus?: string | null;
   humanTakeover?: boolean;
   humanTakeoverUntil?: string | null;
+  topicOptions?: string[];
   interactive?: boolean;
   backHref?: string;
 }
@@ -212,6 +254,7 @@ export function ConversationViewer({
   customerAvatarUrl,
   humanTakeover = false,
   humanTakeoverUntil,
+  topicOptions: initialTopicOptions,
   interactive = false,
   backHref,
 }: ConversationViewerProps) {
@@ -226,8 +269,15 @@ export function ConversationViewer({
   const [status, setStatus] = useState<"resolved" | "unresolved">(
     resolutionStatus ?? "unresolved"
   );
-  const [topic, setTopic] = useState(conversationTopic || "General Inquiry");
+  const [topic, setTopic] = useState(conversationTopic?.trim() || "");
   const [topicUpdating, setTopicUpdating] = useState(false);
+  const [topicOptions, setTopicOptions] = useState<BotTopicOption[]>(
+    (initialTopicOptions ?? [])
+      .map((label) => (typeof label === "string" ? label.trim() : ""))
+      .filter(Boolean)
+      .map((label) => ({ label, priority: null }))
+  );
+  const [topicOptionsLoading, setTopicOptionsLoading] = useState(false);
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(messages);
   const [takeoverEnabled, setTakeoverEnabled] = useState(humanTakeover);
   const [takeoverUntil, setTakeoverUntil] = useState<string | null>(
@@ -238,6 +288,7 @@ export function ConversationViewer({
   const messageIdsRef = useRef<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previousBotIdRef = useRef<string | null>(null);
   const lastMessageCountRef = useRef(localMessages.length);
   const optimisticIdsRef = useRef<Set<string>>(new Set());
   const autoScrollRef = useRef(true);
@@ -531,6 +582,13 @@ export function ConversationViewer({
       : null;
   const standalone = true;
   const sourceLabel = conversationSource || "Unknown source";
+  const hasEnabledTopicOptions = topicOptions.length > 0;
+  const mergedTopicLabels = getMergedTopicLabels(topicOptions, topic);
+  const topicSelectorDisabled =
+    topicUpdating ||
+    topicOptionsLoading ||
+    !standalone ||
+    !hasEnabledTopicOptions;
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -559,8 +617,58 @@ export function ConversationViewer({
   }, [localMessages]);
 
   useEffect(() => {
-    setTopic(conversationTopic || "General Inquiry");
+    setTopic(conversationTopic?.trim() || "");
   }, [conversationTopic]);
+
+  useEffect(() => {
+    const previousBotId = previousBotIdRef.current;
+    if (previousBotId && previousBotId !== botId) {
+      botTopicsCache.delete(previousBotId);
+    }
+    previousBotIdRef.current = botId;
+  }, [botId]);
+
+  useEffect(() => {
+    if (Array.isArray(initialTopicOptions) && initialTopicOptions.length > 0) {
+      setTopicOptions(
+        initialTopicOptions
+          .map((label) => (typeof label === "string" ? label.trim() : ""))
+          .filter(Boolean)
+          .map((label) => ({ label, priority: null }))
+      );
+      setTopicOptionsLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadTopicOptions = async () => {
+      if (!botId) {
+        setTopicOptions([]);
+        return;
+      }
+      setTopicOptionsLoading(true);
+      try {
+        const options = await getBotTopicOptions({ botId });
+        if (!active) return;
+        setTopicOptions(options);
+      } catch (error) {
+        if (!active) return;
+        setTopicOptions([]);
+        toast.error(
+          error instanceof Error ? error.message : "Failed to load topics"
+        );
+      } finally {
+        if (active) {
+          setTopicOptionsLoading(false);
+        }
+      }
+    };
+
+    void loadTopicOptions();
+    return () => {
+      active = false;
+    };
+  }, [botId, conversationId, initialTopicOptions]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1443,6 +1551,15 @@ export function ConversationViewer({
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
+        if (response.status === 400) {
+          botTopicsCache.delete(botId);
+          try {
+            const refreshed = await getBotTopicOptions({ botId, force: true });
+            setTopicOptions(refreshed);
+          } catch (refreshError) {
+            console.error("Failed to refresh bot topics", refreshError);
+          }
+        }
         throw new Error(payload?.error || "Failed to update topic");
       }
       toast.success("Topic updated");
@@ -1507,21 +1624,39 @@ export function ConversationViewer({
               </Button>
               <div className="min-w-[120px]">
                 <Select
-                  value={topic}
+                  value={topic || undefined}
                   onValueChange={handleTopicChange}
-                  disabled={topicUpdating || !standalone}
+                  disabled={topicSelectorDisabled}
                 >
                   <SelectTrigger className="h-9 text-xs w-[160px] sm:w-[190px]">
                     <SelectValue placeholder="Select topic" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TOPIC_LABELS.map((label) => (
-                      <SelectItem key={label} value={label}>
-                        {label}
+                    {topicOptionsLoading ? (
+                      <SelectItem value="__loading" disabled>
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading topics...
+                        </span>
                       </SelectItem>
-                    ))}
+                    ) : mergedTopicLabels.length > 0 ? (
+                      mergedTopicLabels.map((label) => (
+                        <SelectItem key={label} value={label}>
+                          {label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="__empty" disabled>
+                        No enabled topics configured for this bot.
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!topicOptionsLoading && !hasEnabledTopicOptions ? (
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    No enabled topics configured for this bot.
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
