@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +23,15 @@ import type {
 } from "@/types/bookings";
 import type { InboxCounts } from "@/types/inbox";
 import { BookingListItemCard } from "@/components/bookings/list-item";
+import { BookingScheduleSummaryStrip } from "@/components/bookings/schedule-summary-strip";
 import { dispatchInboxCounts } from "@/lib/inbox-counts";
+import {
+  buildBookingCollisionMap,
+  buildBufferedScheduleRange,
+  collectScheduleTimezones,
+  filterBookingsForScheduleWindow,
+  getBookingScheduleDateKey,
+} from "@/lib/bookings/schedule-visualization";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,12 +75,7 @@ function toLocalIsoDate(value: Date) {
 }
 
 function buildScheduleRange(anchorDate: string, view: BookingScheduleView) {
-  const start = parseLocalDate(anchorDate);
-  const end = addLocalDays(start, VIEW_RANGE_DAYS[view]);
-  return {
-    rangeStart: start.toISOString(),
-    rangeEnd: end.toISOString(),
-  };
+  return buildBufferedScheduleRange(anchorDate, VIEW_RANGE_DAYS[view]);
 }
 
 function formatSingleDateLabel(value: Date) {
@@ -92,10 +97,7 @@ function formatRangeLabel(anchorDate: string, view: BookingScheduleView) {
 }
 
 function getBookingDateKey(booking: BookingSummary) {
-  if (!booking.start_at) return null;
-  const date = new Date(booking.start_at);
-  if (Number.isNaN(date.getTime())) return null;
-  return toLocalIsoDate(date);
+  return getBookingScheduleDateKey(booking);
 }
 
 function formatAgendaGroupLabel(dateKey: string) {
@@ -115,6 +117,7 @@ function formatWeekdayLabel(dateKey: string) {
 }
 
 export function BookingsList() {
+  const searchParams = useSearchParams();
   const [workflows, setWorkflows] = useState<BookingWorkflow[]>([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -135,6 +138,14 @@ export function BookingsList() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
   const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
+  const conversationFilter = useMemo(() => {
+    const value = searchParams.get("conversationId");
+    if (typeof value !== "string") {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }, [searchParams]);
 
   const workflowOptions = useMemo(() => {
     const base = [{ id: "all", name: "All workflows" }];
@@ -156,10 +167,30 @@ export function BookingsList() {
     [anchorDate, view]
   );
 
+  const visibleScheduledEntries = useMemo(
+    () =>
+      filterBookingsForScheduleWindow({
+        entries: scheduleEntries,
+        anchorDate,
+        days: VIEW_RANGE_DAYS[view],
+      }),
+    [anchorDate, scheduleEntries, view]
+  );
+
+  const collisionMap = useMemo(
+    () => buildBookingCollisionMap(visibleScheduledEntries),
+    [visibleScheduledEntries]
+  );
+
+  const scheduleTimezones = useMemo(
+    () => collectScheduleTimezones(visibleScheduledEntries),
+    [visibleScheduledEntries]
+  );
+
   const agendaGroups = useMemo(() => {
     const grouped = new Map<string, BookingSummary[]>();
 
-    scheduleEntries.forEach((booking) => {
+    visibleScheduledEntries.forEach((booking) => {
       const dateKey = getBookingDateKey(booking);
       if (!dateKey) return;
       const current = grouped.get(dateKey) ?? [];
@@ -172,12 +203,12 @@ export function BookingsList() {
       label: formatAgendaGroupLabel(dateKey),
       bookings,
     }));
-  }, [scheduleEntries]);
+  }, [visibleScheduledEntries]);
 
   const weekDays = useMemo(() => {
     const grouped = new Map<string, BookingSummary[]>();
 
-    scheduleEntries.forEach((booking) => {
+    visibleScheduledEntries.forEach((booking) => {
       const dateKey = getBookingDateKey(booking);
       if (!dateKey) return;
       const current = grouped.get(dateKey) ?? [];
@@ -195,23 +226,22 @@ export function BookingsList() {
         bookings: grouped.get(dateKey) ?? [],
       };
     });
-  }, [anchorDate, scheduleEntries]);
+  }, [anchorDate, visibleScheduledEntries]);
 
   const visibleBookings = useMemo(
-    () => scheduleEntries.concat(unscheduledEntries),
-    [scheduleEntries, unscheduledEntries]
+    () => visibleScheduledEntries.concat(unscheduledEntries),
+    [unscheduledEntries, visibleScheduledEntries]
   );
 
   const visibleCount =
     view === "agenda"
-      ? scheduleEntries.length + unscheduledEntries.length
-      : scheduleEntries.length;
+      ? visibleScheduledEntries.length + unscheduledEntries.length
+      : visibleScheduledEntries.length;
 
   const pendingCount = inboxCounts?.pendingBookings ?? 0;
   const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
-  const scheduledCount = scheduleSummary?.scheduled ?? scheduleEntries.length;
-  const needsScheduleCount =
-    scheduleSummary?.unscheduled ?? unscheduledEntries.length;
+  const scheduledCount = visibleScheduledEntries.length;
+  const needsScheduleCount = unscheduledEntries.length;
 
   const loadWorkflows = useCallback(async () => {
     try {
@@ -253,6 +283,9 @@ export function BookingsList() {
         }
         if (debouncedReferenceQuery.trim()) {
           params.set("referenceQuery", debouncedReferenceQuery.trim());
+        }
+        if (conversationFilter) {
+          params.set("conversationId", conversationFilter);
         }
 
         const response = await fetch(`/api/bookings/schedule?${params.toString()}`, {
@@ -297,6 +330,7 @@ export function BookingsList() {
       scheduleRange.rangeStart,
       selectedWorkflow,
       statusFilter,
+      conversationFilter,
       view,
     ]
   );
@@ -479,7 +513,11 @@ export function BookingsList() {
 
   const renderAgendaView = () => {
     if (agendaGroups.length === 0 && unscheduledEntries.length === 0) {
-      return renderEmptyState("No bookings found for this schedule window.");
+      return renderEmptyState(
+        conversationFilter
+          ? "No bookings linked to this conversation yet."
+          : "No bookings found for this schedule window."
+      );
     }
 
     return (
@@ -502,6 +540,7 @@ export function BookingsList() {
                 <BookingListItemCard
                   key={booking.id}
                   booking={booking}
+                  collisionCount={collisionMap.get(booking.id)?.size ?? 0}
                   deleting={deletingId === booking.id}
                   onDelete={handleRequestDelete}
                 />
@@ -545,16 +584,21 @@ export function BookingsList() {
   };
 
   const renderDayView = () => {
-    if (scheduleEntries.length === 0) {
-      return renderEmptyState("No scheduled bookings for this day.");
+    if (visibleScheduledEntries.length === 0) {
+      return renderEmptyState(
+        conversationFilter
+          ? "No scheduled bookings linked to this conversation."
+          : "No scheduled bookings for this day."
+      );
     }
 
     return (
       <div className="space-y-3">
-        {scheduleEntries.map((booking) => (
+        {visibleScheduledEntries.map((booking) => (
           <BookingListItemCard
             key={booking.id}
             booking={booking}
+            collisionCount={collisionMap.get(booking.id)?.size ?? 0}
             deleting={deletingId === booking.id}
             onDelete={handleRequestDelete}
           />
@@ -564,8 +608,12 @@ export function BookingsList() {
   };
 
   const renderWeekView = () => {
-    if (scheduleEntries.length === 0) {
-      return renderEmptyState("No scheduled bookings for this week.");
+    if (visibleScheduledEntries.length === 0) {
+      return renderEmptyState(
+        conversationFilter
+          ? "No scheduled bookings linked to this conversation."
+          : "No scheduled bookings for this week."
+      );
     }
 
     return (
@@ -593,6 +641,7 @@ export function BookingsList() {
                     <BookingListItemCard
                       key={booking.id}
                       booking={booking}
+                      collisionCount={collisionMap.get(booking.id)?.size ?? 0}
                       deleting={deletingId === booking.id}
                       onDelete={handleRequestDelete}
                       compact
@@ -654,40 +703,15 @@ export function BookingsList() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-[0.16em] text-amber-900/70">
-            Pending
-          </div>
-          <div className="mt-1 text-2xl font-semibold text-amber-950">
-            {pendingCount}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-900/70">
-            Upcoming
-          </div>
-          <div className="mt-1 text-2xl font-semibold text-emerald-950">
-            {upcomingCount}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Scheduled In View
-          </div>
-          <div className="mt-1 text-2xl font-semibold text-foreground">
-            {scheduledCount}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Needs Schedule
-          </div>
-          <div className="mt-1 text-2xl font-semibold text-foreground">
-            {needsScheduleCount}
-          </div>
-        </div>
-      </div>
+      <BookingScheduleSummaryStrip
+        pendingCount={pendingCount}
+        upcomingCount={upcomingCount}
+        scheduledCount={scheduledCount}
+        needsScheduleCount={needsScheduleCount}
+        conversationFilter={conversationFilter}
+        scheduleTimezones={scheduleTimezones}
+        overlapCount={collisionMap.size}
+      />
 
       <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -747,7 +771,11 @@ export function BookingsList() {
       </div>
 
       <div className="mt-4 text-center text-xs text-muted-foreground">
-        {visibleCount} booking{visibleCount === 1 ? "" : "s"} visible in this view
+        {visibleCount} booking{visibleCount === 1 ? "" : "s"} visible in this
+        {conversationFilter ? " conversation-linked " : " "}view
+        {collisionMap.size > 0
+          ? ` • ${collisionMap.size} with overlap warnings`
+          : ""}
       </div>
 
       <AlertDialog

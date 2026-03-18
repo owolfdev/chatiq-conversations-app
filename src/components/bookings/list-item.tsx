@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BookingSummary } from "@/types/bookings";
+import { formatAppointmentDisplay } from "@/lib/bookings/format-appointment";
 import { MessageSquare, Trash2, CalendarDays } from "lucide-react";
 
 interface BookingListItemProps {
@@ -9,6 +10,7 @@ interface BookingListItemProps {
   onDelete: (bookingId: string) => void;
   deleting?: boolean;
   compact?: boolean;
+  collisionCount?: number;
 }
 
 const formatStatus = (status: BookingSummary["status"]) => {
@@ -26,21 +28,12 @@ const formatStatus = (status: BookingSummary["status"]) => {
 
 function formatScheduleLabel(booking: BookingSummary) {
   if (booking.start_at) {
-    const start = new Date(booking.start_at);
-    if (!Number.isNaN(start.getTime())) {
-      const dateLabel = start.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
-      const timeLabel = start.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-      const zoneLabel = booking.appointment_timezone
-        ? ` • ${booking.appointment_timezone}`
-        : "";
-      return `${dateLabel} • ${timeLabel}${zoneLabel}`;
+    const appointmentLabel = formatAppointmentDisplay(
+      booking.start_at,
+      booking.appointment_timezone
+    );
+    if (appointmentLabel) {
+      return appointmentLabel;
     }
   }
 
@@ -59,9 +52,11 @@ export function BookingListItemCard({
   onDelete,
   deleting = false,
   compact = false,
+  collisionCount = 0,
 }: BookingListItemProps) {
   const customerName = booking.customer_name || "Customer";
   const scheduleLabel = formatScheduleLabel(booking);
+  const timezoneLabel = booking.appointment_timezone?.trim() || null;
   const containerClass = compact
     ? "rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
     : "rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md";
@@ -101,6 +96,22 @@ export function BookingListItemCard({
                   className={`${compact ? "text-xs" : "text-sm"} text-muted-foreground`}
                 >
                   {booking.workflow_name}
+                </Badge>
+              ) : null}
+              {timezoneLabel ? (
+                <Badge
+                  variant="outline"
+                  className={`${compact ? "text-xs" : "text-sm"} text-muted-foreground`}
+                >
+                  {timezoneLabel}
+                </Badge>
+              ) : null}
+              {collisionCount > 0 ? (
+                <Badge
+                  variant="outline"
+                  className={`${compact ? "text-xs" : "text-sm"} border-rose-200 bg-rose-50 text-rose-800`}
+                >
+                  {collisionCount} overlap{collisionCount === 1 ? "" : "s"}
                 </Badge>
               ) : null}
               <Badge

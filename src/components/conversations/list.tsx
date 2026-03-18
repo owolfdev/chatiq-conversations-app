@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
+import { ConversationBookingSummaryStrip } from "@/components/conversations/booking-summary-strip";
 import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
 import type { InboxCounts } from "@/types/inbox";
@@ -283,6 +283,12 @@ export function ConversationsList({
   };
 
   const openCount = inboxCounts?.openConversations ?? 0;
+  const pendingBookingsCount = inboxCounts?.pendingBookings ?? 0;
+  const upcomingBookingsCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
+  const needsScheduleCount = inboxCounts?.unscheduledBookings ?? 0;
+  const linkedConversationCount = conversations.filter(
+    (conversation) => conversation.booking_context?.total
+  ).length;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
@@ -306,12 +312,6 @@ export function ConversationsList({
           value={userQuery}
           onChange={(event) => setUserQuery(event.target.value)}
         />
-        <Badge
-          variant="outline"
-          className="border-amber-200 bg-amber-50 text-amber-900"
-        >
-          Open: {openCount}
-        </Badge>
         <Button
           variant="ghost"
           size="icon"
@@ -333,6 +333,14 @@ export function ConversationsList({
           />
         </Button>
       </div>
+
+      <ConversationBookingSummaryStrip
+        openCount={openCount}
+        upcomingBookingsCount={upcomingBookingsCount}
+        pendingBookingsCount={pendingBookingsCount}
+        needsScheduleCount={needsScheduleCount}
+        linkedConversationCount={linkedConversationCount}
+      />
 
       <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">
         {isLoading ? (
