@@ -143,6 +143,10 @@ describe("inbox booking ui", () => {
         upcomingCount={4}
         scheduledCount={5}
         needsScheduleCount={2}
+        hiddenPastPendingCount={1}
+        showPastPending={false}
+        canTogglePastPending
+        onShowPastPendingChange={() => undefined}
         conversationFilter="conversation-1"
         scheduleTimezones={["America/Los_Angeles", "Asia/Bangkok"]}
         overlapCount={3}
@@ -157,6 +161,8 @@ describe("inbox booking ui", () => {
     expect(markup).toContain(">5<");
     expect(markup).toContain("Needs Schedule");
     expect(markup).toContain(">2<");
+    expect(markup).toContain("Show past pending");
+    expect(markup).toContain("1 hidden");
     expect(markup).toContain(
       "Viewing bookings linked to the selected conversation context."
     );

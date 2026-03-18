@@ -1,12 +1,18 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export function BookingScheduleSummaryStrip({
   pendingCount,
   upcomingCount,
   scheduledCount,
   needsScheduleCount,
+  hiddenPastPendingCount,
+  showPastPending,
+  canTogglePastPending,
+  onShowPastPendingChange,
   conversationFilter,
   scheduleTimezones,
   overlapCount,
@@ -15,6 +21,10 @@ export function BookingScheduleSummaryStrip({
   upcomingCount: number;
   scheduledCount: number;
   needsScheduleCount: number;
+  hiddenPastPendingCount: number;
+  showPastPending: boolean;
+  canTogglePastPending: boolean;
+  onShowPastPendingChange: (checked: boolean) => void;
   conversationFilter: string | null;
   scheduleTimezones: string[];
   overlapCount: number;
@@ -55,6 +65,35 @@ export function BookingScheduleSummaryStrip({
           </div>
         </div>
       </div>
+
+      {canTogglePastPending || hiddenPastPendingCount > 0 ? (
+        <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="inbox_show_past_pending"
+                  checked={showPastPending}
+                  onCheckedChange={onShowPastPendingChange}
+                  disabled={!canTogglePastPending}
+                />
+                <Label htmlFor="inbox_show_past_pending" className="text-sm">
+                  Show past pending
+                </Label>
+              </div>
+              <div className="text-muted-foreground">
+                Reveal pending bookings scheduled before this visible window in
+                a separate review section.
+              </div>
+            </div>
+            {!showPastPending && hiddenPastPendingCount > 0 ? (
+              <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-amber-900">
+                {hiddenPastPendingCount} hidden
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {conversationFilter ? (
         <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">

@@ -129,6 +129,10 @@ export function BookingsList() {
   const [unscheduledEntries, setUnscheduledEntries] = useState<BookingSummary[]>(
     []
   );
+  const [pastPendingEntries, setPastPendingEntries] = useState<BookingSummary[]>(
+    []
+  );
+  const [hiddenPastPendingCount, setHiddenPastPendingCount] = useState(0);
   const [scheduleSummary, setScheduleSummary] =
     useState<BookingScheduleResponse["summary"] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,6 +142,7 @@ export function BookingsList() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
   const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
+  const [showPastPending, setShowPastPending] = useState(false);
   const conversationFilter = useMemo(() => {
     const value = searchParams.get("conversationId");
     if (typeof value !== "string") {
@@ -175,6 +180,13 @@ export function BookingsList() {
         days: VIEW_RANGE_DAYS[view],
       }),
     [anchorDate, scheduleEntries, view]
+  );
+
+  const canTogglePastPending =
+    statusFilter === "all" || statusFilter === "pending";
+  const visiblePastPendingEntries = useMemo(
+    () => (canTogglePastPending && showPastPending ? pastPendingEntries : []),
+    [canTogglePastPending, pastPendingEntries, showPastPending]
   );
 
   const collisionMap = useMemo(
@@ -229,14 +241,20 @@ export function BookingsList() {
   }, [anchorDate, visibleScheduledEntries]);
 
   const visibleBookings = useMemo(
-    () => visibleScheduledEntries.concat(unscheduledEntries),
-    [unscheduledEntries, visibleScheduledEntries]
+    () =>
+      visibleScheduledEntries.concat(
+        unscheduledEntries,
+        visiblePastPendingEntries
+      ),
+    [unscheduledEntries, visiblePastPendingEntries, visibleScheduledEntries]
   );
 
   const visibleCount =
     view === "agenda"
-      ? visibleScheduledEntries.length + unscheduledEntries.length
-      : visibleScheduledEntries.length;
+      ? visibleScheduledEntries.length +
+        unscheduledEntries.length +
+        visiblePastPendingEntries.length
+      : visibleScheduledEntries.length + visiblePastPendingEntries.length;
 
   const pendingCount = inboxCounts?.pendingBookings ?? 0;
   const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
@@ -272,6 +290,7 @@ export function BookingsList() {
       try {
         const params = new URLSearchParams();
         params.set("view", view);
+        params.set("anchorDate", anchorDate);
         params.set("rangeStart", scheduleRange.rangeStart);
         params.set("rangeEnd", scheduleRange.rangeEnd);
 
@@ -286,6 +305,9 @@ export function BookingsList() {
         }
         if (conversationFilter) {
           params.set("conversationId", conversationFilter);
+        }
+        if (canTogglePastPending && showPastPending) {
+          params.set("showPastPending", "true");
         }
 
         const response = await fetch(`/api/bookings/schedule?${params.toString()}`, {
@@ -308,6 +330,8 @@ export function BookingsList() {
         const payload = rawPayload as BookingScheduleResponse | null;
         setScheduleEntries(payload?.entries ?? []);
         setUnscheduledEntries(payload?.unscheduled_entries ?? []);
+        setPastPendingEntries(payload?.past_pending_entries ?? []);
+        setHiddenPastPendingCount(payload?.hidden_past_pending_count ?? 0);
         setScheduleSummary(payload?.summary ?? null);
       } catch (error) {
         console.error("Failed to load booking schedule", error);
@@ -325,10 +349,13 @@ export function BookingsList() {
       }
     },
     [
+      anchorDate,
+      canTogglePastPending,
       debouncedReferenceQuery,
       scheduleRange.rangeEnd,
       scheduleRange.rangeStart,
       selectedWorkflow,
+      showPastPending,
       statusFilter,
       conversationFilter,
       view,
@@ -510,6 +537,47 @@ export function BookingsList() {
       {message}
     </div>
   );
+
+  const renderPastPendingSection = () => {
+    if (!showPastPending) {
+      return null;
+    }
+
+    return (
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Past Pending
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Pending bookings scheduled before this visible window
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            className="border-amber-200 bg-amber-50 text-amber-900"
+          >
+            {visiblePastPendingEntries.length}
+          </Badge>
+        </div>
+        {visiblePastPendingEntries.length === 0 ? (
+          renderEmptyState("No past pending bookings match the current filters.")
+        ) : (
+          <div className="space-y-3">
+            {visiblePastPendingEntries.map((booking) => (
+              <BookingListItemCard
+                key={booking.id}
+                booking={booking}
+                deleting={deletingId === booking.id}
+                onDelete={handleRequestDelete}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  };
 
   const renderAgendaView = () => {
     if (agendaGroups.length === 0 && unscheduledEntries.length === 0) {
@@ -708,6 +776,10 @@ export function BookingsList() {
         upcomingCount={upcomingCount}
         scheduledCount={scheduledCount}
         needsScheduleCount={needsScheduleCount}
+        hiddenPastPendingCount={hiddenPastPendingCount}
+        showPastPending={showPastPending}
+        canTogglePastPending={canTogglePastPending}
+        onShowPastPendingChange={setShowPastPending}
         conversationFilter={conversationFilter}
         scheduleTimezones={scheduleTimezones}
         overlapCount={collisionMap.size}
@@ -768,6 +840,10 @@ export function BookingsList() {
           : view === "day"
           ? renderDayView()
           : renderWeekView()}
+
+        {!isLoading ? (
+          <div className="mt-6">{renderPastPendingSection()}</div>
+        ) : null}
       </div>
 
       <div className="mt-4 text-center text-xs text-muted-foreground">

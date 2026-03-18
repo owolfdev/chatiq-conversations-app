@@ -57,5 +57,7 @@ export type BookingScheduleResponse = {
   range_end: string;
   entries: BookingSummary[];
   unscheduled_entries: BookingSummary[];
+  past_pending_entries: BookingSummary[];
+  hidden_past_pending_count: number;
   summary: BookingScheduleSummary;
 };
