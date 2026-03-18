@@ -11,9 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
-import type { BookingSummary, BookingWorkflow } from "@/types/bookings";
+import type {
+  BookingScheduleResponse,
+  BookingScheduleView,
+  BookingSummary,
+  BookingWorkflow,
+} from "@/types/bookings";
 import type { InboxCounts } from "@/types/inbox";
 import { BookingListItemCard } from "@/components/bookings/list-item";
 import { dispatchInboxCounts } from "@/lib/inbox-counts";
@@ -29,6 +34,85 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ACTIVE_TEAM_EVENT = "active-team-changed";
+const VIEW_RANGE_DAYS: Record<BookingScheduleView, number> = {
+  agenda: 14,
+  day: 1,
+  week: 7,
+};
+const VIEW_SHIFT_DAYS: Record<BookingScheduleView, number> = {
+  agenda: 7,
+  day: 1,
+  week: 7,
+};
+const VIEW_OPTIONS: BookingScheduleView[] = ["agenda", "day", "week"];
+
+function parseLocalDate(value: string) {
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function addLocalDays(value: Date, days: number) {
+  const next = new Date(value.getTime());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toLocalIsoDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildScheduleRange(anchorDate: string, view: BookingScheduleView) {
+  const start = parseLocalDate(anchorDate);
+  const end = addLocalDays(start, VIEW_RANGE_DAYS[view]);
+  return {
+    rangeStart: start.toISOString(),
+    rangeEnd: end.toISOString(),
+  };
+}
+
+function formatSingleDateLabel(value: Date) {
+  return value.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatRangeLabel(anchorDate: string, view: BookingScheduleView) {
+  const start = parseLocalDate(anchorDate);
+  if (view === "day") {
+    return formatSingleDateLabel(start);
+  }
+
+  const end = addLocalDays(start, VIEW_RANGE_DAYS[view] - 1);
+  return `${formatSingleDateLabel(start)} - ${formatSingleDateLabel(end)}`;
+}
+
+function getBookingDateKey(booking: BookingSummary) {
+  if (!booking.start_at) return null;
+  const date = new Date(booking.start_at);
+  if (Number.isNaN(date.getTime())) return null;
+  return toLocalIsoDate(date);
+}
+
+function formatAgendaGroupLabel(dateKey: string) {
+  return parseLocalDate(dateKey).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatWeekdayLabel(dateKey: string) {
+  return parseLocalDate(dateKey).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 export function BookingsList() {
   const [workflows, setWorkflows] = useState<BookingWorkflow[]>([]);
@@ -36,7 +120,14 @@ export function BookingsList() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [referenceQuery, setReferenceQuery] = useState("");
   const [debouncedReferenceQuery, setDebouncedReferenceQuery] = useState("");
-  const [bookings, setBookings] = useState<BookingSummary[]>([]);
+  const [view, setView] = useState<BookingScheduleView>("agenda");
+  const [anchorDate, setAnchorDate] = useState(() => toLocalIsoDate(new Date()));
+  const [scheduleEntries, setScheduleEntries] = useState<BookingSummary[]>([]);
+  const [unscheduledEntries, setUnscheduledEntries] = useState<BookingSummary[]>(
+    []
+  );
+  const [scheduleSummary, setScheduleSummary] =
+    useState<BookingScheduleResponse["summary"] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -54,6 +145,73 @@ export function BookingsList() {
       }))
     );
   }, [workflows]);
+
+  const scheduleRange = useMemo(
+    () => buildScheduleRange(anchorDate, view),
+    [anchorDate, view]
+  );
+
+  const rangeLabel = useMemo(
+    () => formatRangeLabel(anchorDate, view),
+    [anchorDate, view]
+  );
+
+  const agendaGroups = useMemo(() => {
+    const grouped = new Map<string, BookingSummary[]>();
+
+    scheduleEntries.forEach((booking) => {
+      const dateKey = getBookingDateKey(booking);
+      if (!dateKey) return;
+      const current = grouped.get(dateKey) ?? [];
+      current.push(booking);
+      grouped.set(dateKey, current);
+    });
+
+    return Array.from(grouped.entries()).map(([dateKey, bookings]) => ({
+      dateKey,
+      label: formatAgendaGroupLabel(dateKey),
+      bookings,
+    }));
+  }, [scheduleEntries]);
+
+  const weekDays = useMemo(() => {
+    const grouped = new Map<string, BookingSummary[]>();
+
+    scheduleEntries.forEach((booking) => {
+      const dateKey = getBookingDateKey(booking);
+      if (!dateKey) return;
+      const current = grouped.get(dateKey) ?? [];
+      current.push(booking);
+      grouped.set(dateKey, current);
+    });
+
+    return Array.from({ length: VIEW_RANGE_DAYS.week }, (_, index) => {
+      const dateKey = toLocalIsoDate(
+        addLocalDays(parseLocalDate(anchorDate), index)
+      );
+      return {
+        dateKey,
+        label: formatWeekdayLabel(dateKey),
+        bookings: grouped.get(dateKey) ?? [],
+      };
+    });
+  }, [anchorDate, scheduleEntries]);
+
+  const visibleBookings = useMemo(
+    () => scheduleEntries.concat(unscheduledEntries),
+    [scheduleEntries, unscheduledEntries]
+  );
+
+  const visibleCount =
+    view === "agenda"
+      ? scheduleEntries.length + unscheduledEntries.length
+      : scheduleEntries.length;
+
+  const pendingCount = inboxCounts?.pendingBookings ?? 0;
+  const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
+  const scheduledCount = scheduleSummary?.scheduled ?? scheduleEntries.length;
+  const needsScheduleCount =
+    scheduleSummary?.unscheduled ?? unscheduledEntries.length;
 
   const loadWorkflows = useCallback(async () => {
     try {
@@ -75,13 +233,18 @@ export function BookingsList() {
     }
   }, []);
 
-  const loadBookings = useCallback(
+  const loadSchedule = useCallback(
     async (silent = false) => {
       if (!silent) {
         setIsLoading(true);
       }
+
       try {
         const params = new URLSearchParams();
+        params.set("view", view);
+        params.set("rangeStart", scheduleRange.rangeStart);
+        params.set("rangeEnd", scheduleRange.rangeEnd);
+
         if (selectedWorkflow !== "all") {
           params.set("workflowId", selectedWorkflow);
         }
@@ -91,23 +254,51 @@ export function BookingsList() {
         if (debouncedReferenceQuery.trim()) {
           params.set("referenceQuery", debouncedReferenceQuery.trim());
         }
-        const response = await fetch(`/api/bookings?${params.toString()}`, {
+
+        const response = await fetch(`/api/bookings/schedule?${params.toString()}`, {
           credentials: "include",
         });
+
+        const rawPayload = (await response.json().catch(() => null)) as
+          | BookingScheduleResponse
+          | { error?: string }
+          | null;
+
         if (!response.ok) {
-          throw new Error("Failed to load bookings.");
+          throw new Error(
+            rawPayload && "error" in rawPayload && rawPayload.error
+              ? rawPayload.error
+              : "Failed to load booking schedule."
+          );
         }
-        const payload = (await response.json().catch(() => null)) as {
-          bookings?: BookingSummary[];
-        } | null;
-        setBookings(payload?.bookings ?? []);
+
+        const payload = rawPayload as BookingScheduleResponse | null;
+        setScheduleEntries(payload?.entries ?? []);
+        setUnscheduledEntries(payload?.unscheduled_entries ?? []);
+        setScheduleSummary(payload?.summary ?? null);
+      } catch (error) {
+        console.error("Failed to load booking schedule", error);
+        if (!silent) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to load booking schedule"
+          );
+        }
       } finally {
         if (!silent) {
           setIsLoading(false);
         }
       }
     },
-    [debouncedReferenceQuery, selectedWorkflow, statusFilter]
+    [
+      debouncedReferenceQuery,
+      scheduleRange.rangeEnd,
+      scheduleRange.rangeStart,
+      selectedWorkflow,
+      statusFilter,
+      view,
+    ]
   );
 
   const loadCounts = useCallback(async () => {
@@ -131,6 +322,17 @@ export function BookingsList() {
     }
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await loadWorkflows();
+      await loadSchedule(true);
+      await loadCounts();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [loadCounts, loadSchedule, loadWorkflows]);
+
   useEffect(() => {
     loadWorkflows();
   }, [loadWorkflows]);
@@ -143,8 +345,8 @@ export function BookingsList() {
   }, [referenceQuery]);
 
   useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+    loadSchedule();
+  }, [loadSchedule]);
 
   useEffect(() => {
     loadCounts();
@@ -157,7 +359,7 @@ export function BookingsList() {
       }
       pollingRef.current = window.setInterval(() => {
         if (document.visibilityState === "visible") {
-          loadBookings(true);
+          loadSchedule(true);
           loadCounts();
         }
       }, 8000);
@@ -172,7 +374,7 @@ export function BookingsList() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        loadBookings(true);
+        loadSchedule(true);
         loadCounts();
         startPolling();
       } else {
@@ -187,33 +389,31 @@ export function BookingsList() {
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [loadBookings]);
+  }, [loadCounts, loadSchedule]);
 
   useEffect(() => {
-    const handleTeamChange = () => {
-      handleRefresh();
-    };
-
-    window.addEventListener(ACTIVE_TEAM_EVENT, handleTeamChange);
+    window.addEventListener(ACTIVE_TEAM_EVENT, handleRefresh);
     return () => {
-      window.removeEventListener(ACTIVE_TEAM_EVENT, handleTeamChange);
+      window.removeEventListener(ACTIVE_TEAM_EVENT, handleRefresh);
     };
-  }, []);
+  }, [handleRefresh]);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await loadWorkflows();
-      await loadBookings(true);
-      await loadCounts();
-    } finally {
-      setIsRefreshing(false);
-    }
+  const moveScheduleWindow = (direction: -1 | 1) => {
+    const nextAnchor = addLocalDays(
+      parseLocalDate(anchorDate),
+      VIEW_SHIFT_DAYS[view] * direction
+    );
+    setAnchorDate(toLocalIsoDate(nextAnchor));
+  };
+
+  const resetToToday = () => {
+    setAnchorDate(toLocalIsoDate(new Date()));
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
     if (deletingId) return;
     setDeletingId(bookingId);
+
     try {
       const response = await fetch("/api/bookings/delete", {
         method: "POST",
@@ -229,7 +429,9 @@ export function BookingsList() {
         } | null;
         throw new Error(payload?.error || "Failed to delete booking.");
       }
-      setBookings((prev) => prev.filter((booking) => booking.id !== bookingId));
+
+      await loadSchedule(true);
+      await loadCounts();
       toast.success("Booking deleted.");
     } catch (error) {
       console.error("Failed to delete booking", error);
@@ -247,22 +449,174 @@ export function BookingsList() {
   };
 
   const pendingBooking = pendingDeleteId
-    ? bookings.find((booking) => booking.id === pendingDeleteId)
+    ? visibleBookings.find((booking) => booking.id === pendingDeleteId)
     : null;
 
-  const pendingCount = inboxCounts?.pendingBookings ?? 0;
-  const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
+  const renderLoadingState = () => (
+    <div className="space-y-4">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-2xl border border-border bg-card px-4 py-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+              <div className="h-3 w-3/4 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderEmptyState = (message: string) => (
+    <div className="rounded-2xl border border-dashed border-muted px-4 py-10 text-center text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+
+  const renderAgendaView = () => {
+    if (agendaGroups.length === 0 && unscheduledEntries.length === 0) {
+      return renderEmptyState("No bookings found for this schedule window.");
+    }
+
+    return (
+      <div className="space-y-6">
+        {agendaGroups.map((group) => (
+          <section key={group.dateKey} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-foreground">
+                  {group.label}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Canonical schedule entries
+                </div>
+              </div>
+              <Badge variant="outline">{group.bookings.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {group.bookings.map((booking) => (
+                <BookingListItemCard
+                  key={booking.id}
+                  booking={booking}
+                  deleting={deletingId === booking.id}
+                  onDelete={handleRequestDelete}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {unscheduledEntries.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-foreground">
+                  Needs scheduling
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Filtered bookings without canonical `start_at` yet
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className="border-amber-200 bg-amber-50 text-amber-900"
+              >
+                {unscheduledEntries.length}
+              </Badge>
+            </div>
+            <div className="space-y-3">
+              {unscheduledEntries.map((booking) => (
+                <BookingListItemCard
+                  key={booking.id}
+                  booking={booking}
+                  deleting={deletingId === booking.id}
+                  onDelete={handleRequestDelete}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderDayView = () => {
+    if (scheduleEntries.length === 0) {
+      return renderEmptyState("No scheduled bookings for this day.");
+    }
+
+    return (
+      <div className="space-y-3">
+        {scheduleEntries.map((booking) => (
+          <BookingListItemCard
+            key={booking.id}
+            booking={booking}
+            deleting={deletingId === booking.id}
+            onDelete={handleRequestDelete}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderWeekView = () => {
+    if (scheduleEntries.length === 0) {
+      return renderEmptyState("No scheduled bookings for this week.");
+    }
+
+    return (
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-[840px] grid-cols-7 gap-3">
+          {weekDays.map((day) => (
+            <section
+              key={day.dateKey}
+              className="rounded-2xl border border-border bg-card p-3"
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-foreground">
+                  {day.label}
+                </div>
+                <Badge variant="outline">{day.bookings.length}</Badge>
+              </div>
+
+              {day.bookings.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-muted px-3 py-6 text-center text-xs text-muted-foreground">
+                  No bookings
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {day.bookings.map((booking) => (
+                    <BookingListItemCard
+                      key={booking.id}
+                      booking={booking}
+                      deleting={deletingId === booking.id}
+                      onDelete={handleRequestDelete}
+                      compact
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+    <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 pb-10 pt-4">
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
         <Input
           placeholder="Search by reference"
           value={referenceQuery}
           onChange={(event) => setReferenceQuery(event.target.value)}
         />
         <Select value={selectedWorkflow} onValueChange={setSelectedWorkflow}>
-          <SelectTrigger className="sm:w-[200px]">
+          <SelectTrigger className="lg:w-[220px]">
             <SelectValue placeholder="Workflow" />
           </SelectTrigger>
           <SelectContent>
@@ -275,7 +629,7 @@ export function BookingsList() {
         </Select>
         <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -288,7 +642,7 @@ export function BookingsList() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Refresh list"
+            aria-label="Refresh schedule"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
@@ -299,57 +653,101 @@ export function BookingsList() {
           </Button>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-2">
-        <Badge
-          variant="outline"
-          className="border-amber-200 bg-amber-50 text-amber-900"
-        >
-          Pending: {pendingCount}
-        </Badge>
-        <Badge
-          variant="outline"
-          className="border-emerald-200 bg-emerald-50 text-emerald-900"
-        >
-          Upcoming: {upcomingCount}
-        </Badge>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-amber-900/70">
+            Pending
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-amber-950">
+            {pendingCount}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-900/70">
+            Upcoming
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-emerald-950">
+            {upcomingCount}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Scheduled In View
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-foreground">
+            {scheduledCount}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Needs Schedule
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-foreground">
+            {needsScheduleCount}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">
-        {isLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-border bg-card px-4 py-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
-                    <div className="h-3 w-3/4 rounded bg-muted animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          {VIEW_OPTIONS.map((option) => (
+            <Button
+              key={option}
+              type="button"
+              variant={view === option ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView(option)}
+            >
+              {option === "agenda"
+                ? "Agenda"
+                : option === "day"
+                ? "Day"
+                : "Week"}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Previous schedule window"
+            onClick={() => moveScheduleWindow(-1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-[220px] text-center text-sm font-medium text-foreground">
+            {rangeLabel}
           </div>
-        ) : bookings.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-muted px-4 py-10 text-center text-sm text-muted-foreground">
-            No bookings found.
-          </div>
-        ) : (
-          bookings.map((booking) => (
-            <BookingListItemCard
-              key={booking.id}
-              booking={booking}
-              deleting={deletingId === booking.id}
-              onDelete={handleRequestDelete}
-            />
-          ))
-        )}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Next schedule window"
+            onClick={() => moveScheduleWindow(1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={resetToToday}>
+            Today
+          </Button>
+        </div>
       </div>
 
-      <div className="mt-6 text-center text-xs text-muted-foreground">
-        {bookings.length} bookings
+      <div className="mt-6 min-h-0 flex-1 overflow-y-auto pb-6">
+        {isLoading
+          ? renderLoadingState()
+          : view === "agenda"
+          ? renderAgendaView()
+          : view === "day"
+          ? renderDayView()
+          : renderWeekView()}
+      </div>
+
+      <div className="mt-4 text-center text-xs text-muted-foreground">
+        {visibleCount} booking{visibleCount === 1 ? "" : "s"} visible in this view
       </div>
 
       <AlertDialog

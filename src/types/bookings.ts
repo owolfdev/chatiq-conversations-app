@@ -8,6 +8,11 @@ export type BookingSummary = {
   service_type: string | null;
   requested_date_text: string | null;
   requested_time_slot: string | null;
+  bookable_item_id: string | null;
+  resource_id: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  appointment_timezone: string | null;
   status: BookingStatus;
   created_at: string;
   workflow_id: string | null;
@@ -33,4 +38,24 @@ export type BookingWorkflow = {
   description: string | null;
   is_default: boolean;
   created_at: string;
+};
+
+export type BookingScheduleView = "agenda" | "day" | "week";
+
+export type BookingScheduleSummary = {
+  scheduled: number;
+  unscheduled: number;
+  total: number;
+  pending: number;
+  confirmed: number;
+  cancelled: number;
+};
+
+export type BookingScheduleResponse = {
+  view: BookingScheduleView;
+  range_start: string;
+  range_end: string;
+  entries: BookingSummary[];
+  unscheduled_entries: BookingSummary[];
+  summary: BookingScheduleSummary;
 };

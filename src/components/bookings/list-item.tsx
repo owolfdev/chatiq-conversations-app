@@ -8,6 +8,7 @@ interface BookingListItemProps {
   booking: BookingSummary;
   onDelete: (bookingId: string) => void;
   deleting?: boolean;
+  compact?: boolean;
 }
 
 const formatStatus = (status: BookingSummary["status"]) => {
@@ -23,23 +24,52 @@ const formatStatus = (status: BookingSummary["status"]) => {
   }
 };
 
+function formatScheduleLabel(booking: BookingSummary) {
+  if (booking.start_at) {
+    const start = new Date(booking.start_at);
+    if (!Number.isNaN(start.getTime())) {
+      const dateLabel = start.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      const timeLabel = start.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const zoneLabel = booking.appointment_timezone
+        ? ` • ${booking.appointment_timezone}`
+        : "";
+      return `${dateLabel} • ${timeLabel}${zoneLabel}`;
+    }
+  }
+
+  if (booking.requested_date_text) {
+    const timeSlot = booking.requested_time_slot
+      ? ` • ${booking.requested_time_slot}`
+      : "";
+    return `Legacy request • ${booking.requested_date_text}${timeSlot}`;
+  }
+
+  return "Needs scheduling";
+}
+
 export function BookingListItemCard({
   booking,
   onDelete,
   deleting = false,
+  compact = false,
 }: BookingListItemProps) {
   const customerName = booking.customer_name || "Customer";
-  const requested =
-    booking.requested_date_text ||
-    (booking.created_at
-      ? new Date(booking.created_at).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })
-      : "Date TBD");
+  const scheduleLabel = formatScheduleLabel(booking);
+  const containerClass = compact
+    ? "rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
+    : "rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md";
+  const titleClass = compact ? "truncate text-sm font-semibold" : "truncate text-lg font-semibold";
+  const detailClass = compact ? "mt-2 text-[11px] text-muted-foreground" : "mt-2 text-xs text-muted-foreground";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+    <div className={containerClass}>
       <div className="flex items-start gap-3">
         <Link
           href={`/bookings/${booking.id}`}
@@ -49,35 +79,45 @@ export function BookingListItemCard({
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-semibold">{customerName}</div>
+            <div className={titleClass}>{customerName}</div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge
                 variant="outline"
-                className={`text-sm ${formatStatus(booking.status)}`}
+                className={`${compact ? "text-xs" : "text-sm"} ${formatStatus(booking.status)}`}
               >
                 {booking.status}
               </Badge>
               {booking.service_type ? (
-                <Badge variant="outline" className="text-sm text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className={`${compact ? "text-xs" : "text-sm"} text-muted-foreground`}
+                >
                   {booking.service_type}
                 </Badge>
               ) : null}
               {booking.workflow_name ? (
-                <Badge variant="outline" className="text-sm text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className={`${compact ? "text-xs" : "text-sm"} text-muted-foreground`}
+                >
                   {booking.workflow_name}
                 </Badge>
               ) : null}
-              <Badge variant="outline" className="text-sm text-muted-foreground">
-                {requested}
-                {booking.requested_time_slot
-                  ? ` • ${booking.requested_time_slot}`
-                  : ""}
+              <Badge
+                variant="outline"
+                className={`${compact ? "text-xs" : "text-sm"} text-muted-foreground`}
+              >
+                {scheduleLabel}
               </Badge>
             </div>
-            <div className="mt-2 text-xs text-muted-foreground">
+            <div className={detailClass}>
               {booking.reference_number
                 ? `Reference: ${booking.reference_number}`
                 : "No reference number"}
+              {booking.bookable_item_id
+                ? ` • Item: ${booking.bookable_item_id}`
+                : ""}
+              {booking.resource_id ? ` • Resource: ${booking.resource_id}` : ""}
             </div>
           </div>
         </Link>
@@ -98,20 +138,22 @@ export function BookingListItemCard({
               </Link>
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Delete booking"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onDelete(booking.id);
-            }}
-            disabled={deleting}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {!compact ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Delete booking"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onDelete(booking.id);
+              }}
+              disabled={deleting}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>
