@@ -89,7 +89,7 @@ export default async function ConversationPage({
 
   const { data: messageRows } = await supabase
     .from("bot_messages")
-    .select("id, sender, content, created_at, attachments")
+    .select("id, sender, content, created_at, attachments, metadata")
     .eq("conversation_id", conversation.id)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });
@@ -100,6 +100,7 @@ export default async function ConversationPage({
         role: row.sender === "bot" ? "assistant" : "user",
         content: row.content,
         createdAt: row.created_at,
+        messageMetadata: row.metadata ?? undefined,
         attachments: Array.isArray(row.attachments)
           ? row.attachments.filter(
               (item: any) =>

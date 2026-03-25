@@ -6,6 +6,8 @@ export interface ChatMessage {
   content: string;
   createdAt?: string;
   attachments?: ChatAttachment[];
+  /** `bot_messages.metadata` for user rows (e.g. `intent_signals`). */
+  messageMetadata?: unknown;
 }
 
 export interface ChatAttachment {

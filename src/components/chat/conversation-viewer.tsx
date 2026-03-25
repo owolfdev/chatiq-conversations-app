@@ -29,6 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getIntentSignalEntries,
+  intentKeyDisplayLabel,
+  intentSourceDisplayLabel,
+} from "@/lib/chat/intent-metadata";
 
 const LANGUAGE_OPTIONS = [
   { value: "auto", label: "Auto (detect)" },
@@ -65,7 +70,37 @@ type ConversationMessageRow = {
   content: string;
   created_at: string;
   attachments?: unknown;
+  metadata?: unknown;
 };
+
+function MessageIntentBadges({
+  metadata,
+  badgeClassName,
+}: {
+  metadata: unknown;
+  badgeClassName?: string;
+}) {
+  const entries = getIntentSignalEntries(metadata);
+  if (entries.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Detected intents">
+      {entries.map((entry, i) => (
+        <Badge
+          key={`${entry.key}-${entry.recordedAt ?? i}`}
+          variant="secondary"
+          className={cn("text-[10px] font-normal", badgeClassName)}
+          title={
+            [intentSourceDisplayLabel(entry.source), entry.recordedAt]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+        >
+          {intentKeyDisplayLabel(entry.key)}
+        </Badge>
+      ))}
+    </div>
+  );
+}
 
 const normalizeInput = (text: string, caseSensitive: boolean) => {
   const trimmed = text.trim();
@@ -497,6 +532,7 @@ export function ConversationViewer({
     role: (row.sender === "bot" ? "assistant" : "user") as ChatMessage["role"],
     content: row.content,
     createdAt: row.created_at,
+    messageMetadata: row.metadata ?? undefined,
     attachments: Array.isArray(row.attachments)
       ? row.attachments.filter(
           (item: any) =>
@@ -1771,6 +1807,9 @@ export function ConversationViewer({
                             <MessageMarkdown content={contentToRender} />
                           </div>
                           {renderImageAttachments(msg.attachments)}
+                          {isUser ? (
+                            <MessageIntentBadges metadata={msg.messageMetadata} />
+                          ) : null}
                           {translationEntry && translateInbound && (
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                               <Badge variant="outline" className="text-[10px]">
@@ -2086,6 +2125,16 @@ export function ConversationViewer({
                           <MessageMarkdown content={msg.content} />
                         </div>
                         {renderImageAttachments(msg.attachments)}
+                        {isUser ? (
+                          <MessageIntentBadges
+                            metadata={msg.messageMetadata}
+                            badgeClassName={
+                              isUser
+                                ? "border-emerald-200/50 bg-emerald-600/25 text-emerald-50"
+                                : undefined
+                            }
+                          />
+                        ) : null}
                         {msg.createdAt && (
                           <div
                             className={cn(
