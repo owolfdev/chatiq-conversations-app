@@ -206,16 +206,16 @@ export async function saveChatToDatabase({
         supabase,
         conversationId: newConversationId,
       });
-      if (
-        topicUpdate.updated &&
-        topicUpdate.previousTopic &&
-        !isNewConversation
-      ) {
+      if (topicUpdate.updated && !isNewConversation) {
+        const previousTopicLabel =
+          topicUpdate.previousTopic && topicUpdate.previousTopic.trim().length > 0
+            ? topicUpdate.previousTopic
+            : "General Inquiry";
         await sendTeamPushNotification({
           teamId: botTeamId,
           type: "conversation",
           title: "Conversation topic updated",
-          body: `${topicUpdate.previousTopic} -> ${topicUpdate.topic}`,
+          body: `${previousTopicLabel} -> ${topicUpdate.topic}`,
           url: `/conversations/${newConversationId}`,
         });
       }
