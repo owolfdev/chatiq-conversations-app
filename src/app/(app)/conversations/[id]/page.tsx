@@ -113,6 +113,23 @@ export default async function ConversationPage({
       }))
     : [];
 
+  const nowIso = new Date().toISOString();
+  const { data: linkedBookings } = await supabase
+    .from("bookings")
+    .select("id, start_at, created_at")
+    .eq("team_id", bot.team_id)
+    .eq("conversation_id", conversation.id)
+    .in("status", ["pending", "confirmed"])
+    .or(`start_at.is.null,start_at.gte.${nowIso}`)
+    .order("created_at", { ascending: false });
+
+  const bookingHref =
+    linkedBookings && linkedBookings.length > 0
+      ? linkedBookings.length === 1
+        ? `/bookings/${linkedBookings[0].id}`
+        : `/bookings?conversationId=${conversation.id}`
+      : null;
+
   return (
     <main className="h-full bg-background pt-2 pb-4 overflow-hidden flex flex-col">
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -146,6 +163,7 @@ export default async function ConversationPage({
           topicOptions={topicOptions}
           interactive
           backHref={backHref}
+          bookingHref={bookingHref}
         />
       </div>
     </main>

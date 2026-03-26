@@ -275,6 +275,7 @@ interface ConversationViewerProps {
   topicOptions?: string[];
   interactive?: boolean;
   backHref?: string;
+  bookingHref?: string | null;
 }
 
 export function ConversationViewer({
@@ -292,6 +293,7 @@ export function ConversationViewer({
   topicOptions: initialTopicOptions,
   interactive = false,
   backHref,
+  bookingHref = null,
 }: ConversationViewerProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -1614,11 +1616,18 @@ export function ConversationViewer({
     <div className="w-full flex h-full flex-col min-h-0">
       <div className="shrink-0 bg-background border-b border-border shadow-sm">
         <div className="space-y-2 pb-2 px-4">
-          {backHref ? (
-            <div className="pt-2">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={backHref}>Back to booking</Link>
-              </Button>
+          {backHref || bookingHref ? (
+            <div className="pt-2 flex items-center gap-2">
+              {backHref ? (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={backHref}>Back to booking</Link>
+                </Button>
+              ) : null}
+              {bookingHref ? (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={bookingHref}>Open booking</Link>
+                </Button>
+              ) : null}
             </div>
           ) : null}
           <div className="flex items-start justify-between gap-3">
