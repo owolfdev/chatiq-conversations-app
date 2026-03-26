@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { logAnalyticsEvent } from "@/lib/analytics/log-analytics-event";
 import { updateConversationTopic } from "@/lib/conversations/update-conversation-topic";
 import { markConversationUnresolved } from "@/lib/conversations/update-conversation-resolution";
+import { sendTeamPushNotification } from "@/lib/notifications/send-push";
 
 interface SaveChatOptions {
   botId: string;
@@ -52,6 +53,7 @@ export async function saveChatToDatabase({
     supabase = await createClient();
   }
 
+  const isNewConversation = !conversationId;
   let newConversationId = conversationId;
   let botTeamId = teamId;
 
@@ -200,10 +202,23 @@ export async function saveChatToDatabase({
       conversationId: newConversationId,
     });
     try {
-      await updateConversationTopic({
+      const topicUpdate = await updateConversationTopic({
         supabase,
         conversationId: newConversationId,
       });
+      if (
+        topicUpdate.updated &&
+        topicUpdate.previousTopic &&
+        !isNewConversation
+      ) {
+        await sendTeamPushNotification({
+          teamId: botTeamId,
+          type: "conversation",
+          title: "Conversation topic updated",
+          body: `${topicUpdate.previousTopic} -> ${topicUpdate.topic}`,
+          url: `/conversations/${newConversationId}`,
+        });
+      }
     } catch (error) {
       console.error("Failed to update conversation topic", error);
     }

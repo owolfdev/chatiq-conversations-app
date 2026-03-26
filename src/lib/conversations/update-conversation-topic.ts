@@ -13,7 +13,14 @@ export async function updateConversationTopic({
 }: {
   supabase: SupabaseClient;
   conversationId: string;
-}) {
+}): Promise<
+  | {
+      updated: true;
+      previousTopic: ConversationTopic | null;
+      topic: ConversationTopic;
+    }
+  | { updated: false }
+> {
   const sinceDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentMessages, error: recentError } = await supabase
     .from("bot_messages")
@@ -25,7 +32,7 @@ export async function updateConversationTopic({
     .limit(3);
 
   if (recentError || !recentMessages || recentMessages.length === 0) {
-    return;
+    return { updated: false };
   }
 
   const { count: totalUserMessages } = await supabase
@@ -49,7 +56,7 @@ export async function updateConversationTopic({
     : null;
 
   if (topicSource === "manual") {
-    return;
+    return { updated: false };
   }
 
   const { topic, score } = classifyConversationTopic({
@@ -58,11 +65,11 @@ export async function updateConversationTopic({
   });
 
   if (isGreetingTopic(topic) && previousTopic && !isGreetingTopic(previousTopic)) {
-    return;
+    return { updated: false };
   }
 
   if (previousTopic && previousTopic === topic) {
-    return;
+    return { updated: false };
   }
 
   const confidence = Math.min(score / 4, 1);
@@ -80,4 +87,10 @@ export async function updateConversationTopic({
       topic_message_at: triggeringMessage?.created_at ?? null,
     })
     .eq("id", conversationId);
+
+  return {
+    updated: true,
+    previousTopic,
+    topic,
+  };
 }
