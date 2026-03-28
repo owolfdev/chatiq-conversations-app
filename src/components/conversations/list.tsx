@@ -363,6 +363,14 @@ export function ConversationsList({
     detailQuery,
   ]);
 
+  const visibleTopicShortcuts = useMemo(() => {
+    return HOME_TOPIC_SHORTCUTS.filter((shortcut) => {
+      const count = topicShortcutCounts[shortcut.id] ?? 0;
+      const isActive = shortcut.matchTopics.includes(selectedTopic);
+      return count > 0 || isActive;
+    });
+  }, [topicShortcutCounts, selectedTopic]);
+
   const activeServerFilters = useMemo(() => {
     const parts: string[] = [];
     if (selectedTopic !== "all") {
@@ -460,54 +468,52 @@ export function ConversationsList({
         title="Conversation stats"
         defaultOpen={false}
         storageKey="chatiq-inbox.stow.conversationStats"
-        underTitle={
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Quick topic filters
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={buildListHref(null)}
-                scroll={false}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                  selectedTopic === "all"
-                    ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/35"
-                    : "border-border bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                )}
-              >
-                All topics
-              </Link>
-              {HOME_TOPIC_SHORTCUTS.map((shortcut) => {
-                const canonical = homeShortcutCanonicalTopic(shortcut);
-                const count = topicShortcutCounts[shortcut.id] ?? 0;
-                const isActive = shortcut.matchTopics.includes(selectedTopic);
-                return (
-                  <Link
-                    key={shortcut.id}
-                    href={buildListHref(canonical)}
-                    scroll={false}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      getTopicBadgeClass(canonical),
-                      isActive &&
-                        "ring-2 ring-primary/45 ring-offset-2 ring-offset-background"
-                    )}
-                  >
-                    <span>{shortcut.displayLabel}</span>
-                    <span
-                      className="tabular-nums opacity-80"
-                      aria-label={`${count} conversations`}
-                    >
-                      {count}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        }
       >
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Quick topic filters
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={buildListHref(null)}
+              scroll={false}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                selectedTopic === "all"
+                  ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/35"
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+              )}
+            >
+              All topics
+            </Link>
+            {visibleTopicShortcuts.map((shortcut) => {
+              const canonical = homeShortcutCanonicalTopic(shortcut);
+              const count = topicShortcutCounts[shortcut.id] ?? 0;
+              const isActive = shortcut.matchTopics.includes(selectedTopic);
+              return (
+                <Link
+                  key={shortcut.id}
+                  href={buildListHref(canonical)}
+                  scroll={false}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    getTopicBadgeClass(canonical),
+                    isActive &&
+                      "ring-2 ring-primary/45 ring-offset-2 ring-offset-background"
+                  )}
+                >
+                  <span>{shortcut.displayLabel}</span>
+                  <span
+                    className="tabular-nums opacity-80"
+                    aria-label={`${count} conversations`}
+                  >
+                    {count}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
         <ConversationBookingSummaryStrip
           openCount={openCount}
           upcomingBookingsCount={upcomingBookingsCount}
