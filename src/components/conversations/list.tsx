@@ -358,6 +358,14 @@ export function ConversationsList({
     [selectedBot, selectedStatus, selectedSource]
   );
 
+  /** Close stats panel after picking a topic so the list stays in view (mobile-first). */
+  const closeStatsPanelAfterTopicPick = useCallback(() => {
+    setStatsPanelOpen(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CONVERSATION_STATS_STORAGE_KEY, "0");
+    }
+  }, []);
+
   const openCount = inboxCounts?.openConversations ?? 0;
   const topicShortcutCounts = inboxCounts?.topicShortcutCounts ?? {};
   const pendingBookingsCount = inboxCounts?.pendingBookings ?? 0;
@@ -521,6 +529,7 @@ export function ConversationsList({
             <Link
               href={buildListHref(null)}
               scroll={false}
+              onClick={closeStatsPanelAfterTopicPick}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 selectedTopic === "all"
@@ -539,6 +548,7 @@ export function ConversationsList({
                   key={shortcut.id}
                   href={buildListHref(canonical)}
                   scroll={false}
+                  onClick={closeStatsPanelAfterTopicPick}
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                     getTopicBadgeClass(canonical),
