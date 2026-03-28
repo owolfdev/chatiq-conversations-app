@@ -24,6 +24,7 @@ import type {
 import type { InboxCounts } from "@/types/inbox";
 import { BookingListItemCard } from "@/components/bookings/list-item";
 import { BookingScheduleSummaryStrip } from "@/components/bookings/schedule-summary-strip";
+import { StowableStatsPanel } from "@/components/inbox/stowable-stats-panel";
 import { dispatchInboxCounts } from "@/lib/inbox-counts";
 import {
   buildBookingCollisionMap,
@@ -771,19 +772,25 @@ export function BookingsList() {
         </div>
       </div>
 
-      <BookingScheduleSummaryStrip
-        pendingCount={pendingCount}
-        upcomingCount={upcomingCount}
-        scheduledCount={scheduledCount}
-        needsScheduleCount={needsScheduleCount}
-        hiddenPastPendingCount={hiddenPastPendingCount}
-        showPastPending={showPastPending}
-        canTogglePastPending={canTogglePastPending}
-        onShowPastPendingChange={setShowPastPending}
-        conversationFilter={conversationFilter}
-        scheduleTimezones={scheduleTimezones}
-        overlapCount={collisionMap.size}
-      />
+      <StowableStatsPanel
+        title="Booking stats"
+        defaultOpen={false}
+        storageKey="chatiq-inbox.stow.bookingStats"
+      >
+        <BookingScheduleSummaryStrip
+          pendingCount={pendingCount}
+          upcomingCount={upcomingCount}
+          scheduledCount={scheduledCount}
+          needsScheduleCount={needsScheduleCount}
+          hiddenPastPendingCount={hiddenPastPendingCount}
+          showPastPending={showPastPending}
+          canTogglePastPending={canTogglePastPending}
+          onShowPastPendingChange={setShowPastPending}
+          conversationFilter={conversationFilter}
+          scheduleTimezones={scheduleTimezones}
+          overlapCount={collisionMap.size}
+        />
+      </StowableStatsPanel>
 
       <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">

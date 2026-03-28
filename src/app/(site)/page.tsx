@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { MessageSquare, CalendarDays } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
+import { HomeInboxStats } from "@/components/home/home-inbox-stats";
 import { getAppUrl } from "@/lib/email/get-app-url";
 import { InstallCta } from "@/components/pwa/install-cta";
 
@@ -79,6 +80,11 @@ export default async function HomePage() {
           </Button>
           <InstallCta />
         </div>
+        {user ? (
+          <div className="mt-4 flex w-full flex-col items-center px-2">
+            <HomeInboxStats />
+          </div>
+        ) : null}
       </section>
     </main>
   );

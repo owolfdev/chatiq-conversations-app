@@ -16,6 +16,7 @@ export function BookingScheduleSummaryStrip({
   conversationFilter,
   scheduleTimezones,
   overlapCount,
+  compact = false,
 }: {
   pendingCount: number;
   upcomingCount: number;
@@ -28,10 +29,18 @@ export function BookingScheduleSummaryStrip({
   conversationFilter: string | null;
   scheduleTimezones: string[];
   overlapCount: number;
+  /** When true, only the four summary tiles (e.g. home dashboard). */
+  compact?: boolean;
 }) {
   return (
     <>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        className={
+          compact
+            ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+            : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        }
+      >
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <div className="text-xs font-medium uppercase tracking-[0.16em] text-amber-900/70">
             Pending
@@ -66,7 +75,7 @@ export function BookingScheduleSummaryStrip({
         </div>
       </div>
 
-      {canTogglePastPending || hiddenPastPendingCount > 0 ? (
+      {compact ? null : canTogglePastPending || hiddenPastPendingCount > 0 ? (
         <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
@@ -95,7 +104,7 @@ export function BookingScheduleSummaryStrip({
         </div>
       ) : null}
 
-      {conversationFilter ? (
+      {compact ? null : conversationFilter ? (
         <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
           <div className="min-w-0">
             Viewing bookings linked to the selected conversation context.
@@ -106,7 +115,7 @@ export function BookingScheduleSummaryStrip({
         </div>
       ) : null}
 
-      {scheduleTimezones.length > 0 || overlapCount > 0 ? (
+      {compact ? null : scheduleTimezones.length > 0 || overlapCount > 0 ? (
         <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
           <div className="font-medium text-foreground">
             Timezone and collision checks

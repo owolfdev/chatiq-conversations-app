@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
 import { ConversationBookingSummaryStrip } from "@/components/conversations/booking-summary-strip";
+import { StowableStatsPanel } from "@/components/inbox/stowable-stats-panel";
 import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
 import type { InboxCounts } from "@/types/inbox";
@@ -334,13 +335,19 @@ export function ConversationsList({
         </Button>
       </div>
 
-      <ConversationBookingSummaryStrip
-        openCount={openCount}
-        upcomingBookingsCount={upcomingBookingsCount}
-        pendingBookingsCount={pendingBookingsCount}
-        needsScheduleCount={needsScheduleCount}
-        linkedConversationCount={linkedConversationCount}
-      />
+      <StowableStatsPanel
+        title="Conversation stats"
+        defaultOpen={false}
+        storageKey="chatiq-inbox.stow.conversationStats"
+      >
+        <ConversationBookingSummaryStrip
+          openCount={openCount}
+          upcomingBookingsCount={upcomingBookingsCount}
+          pendingBookingsCount={pendingBookingsCount}
+          needsScheduleCount={needsScheduleCount}
+          linkedConversationCount={linkedConversationCount}
+        />
+      </StowableStatsPanel>
 
       <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">
         {isLoading ? (

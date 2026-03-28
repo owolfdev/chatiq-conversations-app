@@ -4,16 +4,19 @@ export function ConversationBookingSummaryStrip({
   pendingBookingsCount,
   needsScheduleCount,
   linkedConversationCount,
+  showLinkedNote = true,
 }: {
   openCount: number;
   upcomingBookingsCount: number;
   pendingBookingsCount: number;
   needsScheduleCount: number;
   linkedConversationCount: number;
+  /** When false, hides the “linked booking history” footer (e.g. home overview). */
+  showLinkedNote?: boolean;
 }) {
   return (
     <>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <div className="text-xs font-medium uppercase tracking-[0.16em] text-amber-900/70">
             Open
@@ -48,11 +51,13 @@ export function ConversationBookingSummaryStrip({
         </div>
       </div>
 
-      <div className="mt-3 text-xs text-muted-foreground">
-        {linkedConversationCount} conversation
-        {linkedConversationCount === 1 ? "" : "s"} in this view have linked
-        booking history.
-      </div>
+      {showLinkedNote ? (
+        <div className="mt-3 text-xs text-muted-foreground">
+          {linkedConversationCount} conversation
+          {linkedConversationCount === 1 ? "" : "s"} in this view have linked
+          booking history.
+        </div>
+      ) : null}
     </>
   );
 }
