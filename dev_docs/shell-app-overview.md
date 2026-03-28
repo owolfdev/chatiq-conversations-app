@@ -26,5 +26,6 @@ What Stays Local
 - No local database writes for conversation data.
 
 Bookings UI (temporary)
-- **Bookings navigation and homepage booking stats are currently turned off** behind a product flag so the inbox can focus on conversations until booking is revisited.
-- **Re-enable:** see **[`bookings-ui-temporarily-disabled.md`](./bookings-ui-temporarily-disabled.md)** — start with `src/lib/inbox-product-flags.ts` (`INBOX_BOOKINGS_UI_ENABLED`).
+- **Bookings navigation and shortcuts are off** behind **`INBOX_BOOKINGS_UI_ENABLED`** (`src/lib/inbox-product-flags.ts`) so the inbox can focus on conversations.
+- The signed-in **home** overview only shows **conversation** summary tiles; a separate **booking stats** block on `/` is not wired while bookings are paused (restore it when product wants it — see checklist).
+- **Full re-enable instructions:** **[`bookings-ui-temporarily-disabled.md`](./bookings-ui-temporarily-disabled.md)**.

@@ -1,49 +1,70 @@
-# Bookings UI is temporarily OFF in this app
+# Bookings UI is paused in the Inbox app
 
-> **TODO — Before shipping or dogfooding bookings again:** turn bookings back on using the steps below.  
-> This is intentional product pause, not a missing feature bug.
+**Current state:** Bookings entry points and shortcuts are **intentionally hidden**. This is not a broken deploy.
 
-## Re-enable (one switch + verify)
-
-1. Open **`src/lib/inbox-product-flags.ts`**.
-2. Set:
-   ```ts
-   export const INBOX_BOOKINGS_UI_ENABLED = true;
-   ```
-3. Deploy / run locally and **smoke-test**:
-   - **`/`** (signed in): “Open Bookings” button and **booking stats** block on the home overview (if you restore the full `HomeInboxStats` booking section — today home only shows conversation counts when the flag is off; with the flag on, re-check `src/components/home/home-inbox-stats.tsx` still matches what you want).
-   - **Header nav**: Bookings (calendar) icon returns.
-   - **Conversations list**: calendar shortcut on rows with booking context returns.
-   - **Conversation detail**: “Open booking” / back-to-booking when `?back=/bookings/...` returns.
-
-## What the flag gates
-
-When `INBOX_BOOKINGS_UI_ENABLED` is **`false`**:
-
-| Area | Hidden / disabled |
-|------|-------------------|
-| Marketing home `/` | “Open Bookings” CTA |
-| Marketing home `/` | Homepage **booking** stats strip (and no `/api/bookings/schedule` fetch for that block) |
-| `MainNav` | Link to `/bookings` |
-| `MainNav` logo badge | Uses **open conversations only** (pending bookings no longer inflate the badge) |
-| Conversation list item | Icon link into `/bookings` |
-| Conversation `[id]` page | `bookingHref` and booking-style `backHref` not passed to the viewer |
-
-**Not gated:** direct navigation to **`/bookings`** and **`/bookings/[id]`** — routes still exist for deep links and debugging.
-
-## Code entry point (bookmark this path)
-
-```
-chatiq-conversations-standalone/src/lib/inbox-product-flags.ts
-```
-
-Search the repo for `INBOX_BOOKINGS_UI_ENABLED` to see every callsite.
-
-## Related docs
-
-- [`shell-app-overview.md`](./shell-app-overview.md) — proxy + responsibilities  
-- [`shell-app-routes.md`](./shell-app-routes.md) — route map  
+When the team is ready to **treat bookings as a first-class surface again**, work through the checklist below so nothing is missed.
 
 ---
 
-_Last updated: 2026-03-28 — align this note when booking work is prioritized again._
+## Checklist — re-enable bookings in the Inbox shell
+
+### 1) Product flag (required)
+
+**File:** `src/lib/inbox-product-flags.ts`
+
+Set:
+
+```ts
+export const INBOX_BOOKINGS_UI_ENABLED = true;
+```
+
+**What this alone turns back on:**
+
+| Location | Behavior restored |
+|----------|-------------------|
+| Marketing home `/` | “Open Bookings” button (see `src/app/(site)/page.tsx`) |
+| `MainNav` | Calendar icon → `/bookings` |
+| `MainNav` badge | Open conversations **+** pending bookings count again |
+| Conversation list rows | Calendar shortcut → `/bookings` when there is booking context (`src/components/conversations/list-item.tsx`) |
+| Conversation detail | `bookingHref` + booking `backHref` passed into the viewer (`src/app/(app)/conversations/[id]/page.tsx`) |
+
+**Find all usages:** search the repo for `INBOX_BOOKINGS_UI_ENABLED`.
+
+---
+
+### 2) Homepage booking stats card (optional product choice)
+
+**Right now (flag `false`):** `src/components/home/home-inbox-stats.tsx` only loads **`/api/inbox-counts`** and shows the **conversation** summary tiles. It does **not** call **`/api/bookings/schedule`** and does **not** render a separate “Bookings” stats section on `/`.
+
+**If you want the home page to show the four booking tiles again** (pending / upcoming / scheduled in window / needs schedule), extend `HomeInboxStats` to:
+
+- fetch the schedule API (same query shape as `BookingsList` / default agenda window), and  
+- render `BookingScheduleSummaryStrip` in **`compact`** mode (see `src/components/bookings/schedule-summary-strip.tsx`).
+
+Use `git log -p -- src/components/home/home-inbox-stats.tsx` or an older commit from before the pause if you want a concrete reference implementation.
+
+---
+
+### 3) Smoke test after changes
+
+- [ ] Signed-in `/` — bookings CTA visible if flag true  
+- [ ] Header — bookings nav works  
+- [ ] Conversations list — booking shortcut appears when `booking_context` exists  
+- [ ] Open a thread with linked bookings — “Open booking” (or equivalent) in the viewer  
+- [ ] `/bookings` and `/bookings/[id]` still load (they are **not** removed; they were only de-emphasized in the UI)
+
+---
+
+### 4) Backend / main app
+
+The shell **proxies** bookings to the main ChatIQ app. Re-enabling UI here does **not** replace main-app booking readiness (workflows, permissions, etc.). Confirm the main app and ops expectations before marketing bookings again.
+
+---
+
+## Related docs
+
+- [`README.md`](./README.md) — dev_docs index (links this file prominently)  
+- [`shell-app-overview.md`](./shell-app-overview.md) — proxy model  
+- [`shell-app-routes.md`](./shell-app-routes.md) — routes  
+
+_Last updated: 2026-03-28_
