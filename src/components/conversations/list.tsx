@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiltersSheet } from "@/components/conversations/filters-sheet";
@@ -11,6 +12,7 @@ import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
 import type { InboxCounts } from "@/types/inbox";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
+import { getTopicShortLabel } from "@/lib/conversations/topic-display";
 import { Filter, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
@@ -37,12 +39,26 @@ export function ConversationsList({
   initialConversations,
   initialBots,
 }: ConversationsListProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [standalone, setStandalone] = useState<boolean | null>(null);
   const [conversations, setConversations] = useState(initialConversations);
-  const [selectedBot, setSelectedBot] = useState("all");
-  const [selectedTopic, setSelectedTopic] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedSource, setSelectedSource] = useState("all");
+  const [selectedBot, setSelectedBot] = useState(() => {
+    const b = searchParams.get("botId") ?? searchParams.get("bot");
+    return b?.trim() ? b.trim() : "all";
+  });
+  const [selectedTopic, setSelectedTopic] = useState(() => {
+    const t = searchParams.get("topic")?.trim();
+    return t && t.length > 0 ? t : "all";
+  });
+  const [selectedStatus, setSelectedStatus] = useState(() => {
+    const s = searchParams.get("status")?.trim();
+    return s && s.length > 0 ? s : "all";
+  });
+  const [selectedSource, setSelectedSource] = useState(() => {
+    const s = searchParams.get("source")?.trim();
+    return s && s.length > 0 ? s : "all";
+  });
   const [userQuery, setUserQuery] = useState("");
   const [detailQuery, setDetailQuery] = useState("");
   const [debouncedUserQuery, setDebouncedUserQuery] = useState("");
@@ -73,7 +89,7 @@ export function ConversationsList({
   }, [conversations]);
 
   const topicOptions = useMemo(() => {
-    return Array.from(
+    const fromConversations = Array.from(
       new Set(
         conversations
           .map((conversation) =>
@@ -84,7 +100,11 @@ export function ConversationsList({
           .filter((topic) => topic.length > 0)
       )
     );
-  }, [conversations]);
+    if (selectedTopic !== "all" && !fromConversations.includes(selectedTopic)) {
+      return [selectedTopic, ...fromConversations];
+    }
+    return fromConversations;
+  }, [conversations, selectedTopic]);
 
   const loadConversations = useCallback(async (silent = false) => {
     const params = new URLSearchParams();
@@ -115,6 +135,7 @@ export function ConversationsList({
     try {
       const response = await fetch(`/api/conversations?${params.toString()}`, {
         credentials: "include",
+        cache: "no-store",
       });
       if (!response.ok) {
         throw new Error("Failed to fetch conversations.");
@@ -141,6 +162,7 @@ export function ConversationsList({
     try {
       const response = await fetch("/api/inbox-counts", {
         credentials: "include",
+        cache: "no-store",
       });
       if (!response.ok) {
         return;
@@ -281,6 +303,7 @@ export function ConversationsList({
     setSelectedSource("all");
     setUserQuery("");
     setDetailQuery("");
+    router.replace("/conversations", { scroll: false });
   };
 
   const openCount = inboxCounts?.openConversations ?? 0;
@@ -290,6 +313,38 @@ export function ConversationsList({
   const linkedConversationCount = conversations.filter(
     (conversation) => conversation.booking_context?.total
   ).length;
+
+  const activeServerFilters = useMemo(() => {
+    const parts: string[] = [];
+    if (selectedTopic !== "all") {
+      parts.push(`Topic: ${getTopicShortLabel(selectedTopic)}`);
+    }
+    if (selectedBot !== "all") {
+      const bot = initialBots.find((b) => b.id === selectedBot);
+      parts.push(`Bot: ${bot?.name ?? selectedBot}`);
+    }
+    if (selectedStatus !== "all") {
+      parts.push(`Status: ${selectedStatus}`);
+    }
+    if (selectedSource !== "all") {
+      parts.push(`Source: ${selectedSource}`);
+    }
+    if (debouncedUserQuery.trim()) {
+      parts.push("Customer search");
+    }
+    if (debouncedDetailQuery.trim()) {
+      parts.push("Detail search");
+    }
+    return parts;
+  }, [
+    selectedTopic,
+    selectedBot,
+    selectedStatus,
+    selectedSource,
+    debouncedUserQuery,
+    debouncedDetailQuery,
+    initialBots,
+  ]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-10 pt-4">
@@ -335,6 +390,13 @@ export function ConversationsList({
         </Button>
       </div>
 
+      {activeServerFilters.length > 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Active filters</span>{" "}
+          (applied on server): {activeServerFilters.join(" · ")}
+        </p>
+      ) : null}
+
       <StowableStatsPanel
         title="Conversation stats"
         defaultOpen={false}
@@ -347,6 +409,18 @@ export function ConversationsList({
           needsScheduleCount={needsScheduleCount}
           linkedConversationCount={linkedConversationCount}
         />
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          {openCount > 0 ? (
+            <>
+              <span className="font-medium text-foreground">{openCount}</span>{" "}
+              open conversation
+              {openCount === 1 ? "" : "s"} team-wide (not limited to this
+              list).{" "}
+            </>
+          ) : null}
+          This list loads up to <span className="font-medium text-foreground">50</span>{" "}
+          threads per refresh, newest first. Topic filters run on the server.
+        </p>
       </StowableStatsPanel>
 
       <div className="mt-6 flex-1 min-h-0 space-y-4 overflow-y-auto pb-6">

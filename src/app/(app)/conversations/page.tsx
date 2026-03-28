@@ -1,14 +1,40 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getUserBotsWithCounts } from "@/app/actions/bots/get-user-bots-with-counts";
 import { ConversationsList } from "@/components/conversations/list";
+import ConversationsLoading from "./loading";
 
 export const metadata: Metadata = {
   title: "Conversations",
 };
 
-export default async function ConversationsPage() {
+type ConversationsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function conversationListKeyFromSearchParams(
+  sp: Record<string, string | string[] | undefined>
+): string {
+  const pick = (k: string) => {
+    const v = sp[k];
+    if (Array.isArray(v)) return v[0] ?? "";
+    return typeof v === "string" ? v : "";
+  };
+  const parts = [
+    pick("topic"),
+    pick("botId"),
+    pick("bot"),
+    pick("status"),
+    pick("source"),
+  ];
+  return parts.every((p) => !p) ? "default" : parts.join("|");
+}
+
+export default async function ConversationsPage({
+  searchParams,
+}: ConversationsPageProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,10 +51,16 @@ export default async function ConversationsPage() {
     name: bot.name,
   }));
 
+  const sp = await searchParams;
+  const listKey = conversationListKeyFromSearchParams(sp);
+
   return (
-    <ConversationsList
-      initialConversations={[]}
-      initialBots={teamBots}
-    />
+    <Suspense fallback={<ConversationsLoading />}>
+      <ConversationsList
+        key={listKey}
+        initialConversations={[]}
+        initialBots={teamBots}
+      />
+    </Suspense>
   );
 }

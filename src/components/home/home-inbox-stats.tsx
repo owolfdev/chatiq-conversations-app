@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { ConversationBookingSummaryStrip } from "@/components/conversations/booking-summary-strip";
+import { HOME_TOPIC_SHORTCUTS } from "@/lib/conversations/home-topic-shortcuts";
+import {
+  getTopicBadgeClass,
+  getTopicShortLabel,
+} from "@/lib/conversations/topic-display";
+import { cn } from "@/lib/utils";
 import type { InboxCounts } from "@/types/inbox";
 
 export function HomeInboxStats() {
@@ -16,6 +23,7 @@ export function HomeInboxStats() {
       try {
         const countsRes = await fetch("/api/inbox-counts", {
           credentials: "include",
+          cache: "no-store",
         });
 
         if (cancelled) return;
@@ -65,7 +73,10 @@ export function HomeInboxStats() {
     pendingBookings: 0,
     upcomingConfirmedBookings: 0,
     unscheduledBookings: 0,
+    topicShortcutCounts: {},
   };
+
+  const topicCounts = inbox.topicShortcutCounts ?? {};
 
   return (
     <div className="mt-12 w-full max-w-2xl space-y-8 text-left">
@@ -89,6 +100,55 @@ export function HomeInboxStats() {
           linkedConversationCount={0}
           showLinkedNote={false}
         />
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card/60 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Browse by topic
+          </h2>
+          <Link
+            href="/conversations"
+            className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+          >
+            All conversations
+          </Link>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Opens the inbox with that topic filter applied (server-side, up to 50
+          threads per load).
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {HOME_TOPIC_SHORTCUTS.map((topic) => {
+            const n = topicCounts[topic] ?? 0;
+            return (
+              <Link
+                key={topic}
+                href={`/conversations?topic=${encodeURIComponent(topic)}`}
+                className={cn(
+                  "flex min-h-13 items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors active:scale-[0.99]",
+                  getTopicBadgeClass(topic)
+                )}
+              >
+                <span className="line-clamp-2 min-w-0 flex-1 leading-snug">
+                  {getTopicShortLabel(topic)}
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  <span
+                    className="tabular-nums text-xs font-semibold text-foreground/80"
+                    aria-label={`${n} conversations`}
+                  >
+                    {n}
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 opacity-60"
+                    aria-hidden
+                  />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </section>
     </div>
   );
