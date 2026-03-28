@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
 import { HomeInboxStats } from "@/components/home/home-inbox-stats";
 import { getAppUrl } from "@/lib/email/get-app-url";
+import { INBOX_BOOKINGS_UI_ENABLED } from "@/lib/inbox-product-flags";
 import { InstallCta } from "@/components/pwa/install-cta";
 
 const appUrl = getAppUrl();
@@ -36,7 +37,6 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const conversationsHref = user ? "/conversations" : "/sign-in";
-  const bookingsHref = user ? "/bookings" : "/sign-in";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -72,12 +72,17 @@ export default async function HomePage() {
               <span>Open Conversations</span>
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href={bookingsHref} className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" />
-              <span>Open Bookings</span>
-            </Link>
-          </Button>
+          {INBOX_BOOKINGS_UI_ENABLED ? (
+            <Button asChild size="lg" variant="outline">
+              <Link
+                href={user ? "/bookings" : "/sign-in"}
+                className="flex items-center gap-2"
+              >
+                <CalendarDays className="h-5 w-5" />
+                <span>Open Bookings</span>
+              </Link>
+            </Button>
+          ) : null}
           <InstallCta />
         </div>
         {user ? (

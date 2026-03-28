@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ConversationListItem } from "@/types/conversations";
+import { INBOX_BOOKINGS_UI_ENABLED } from "@/lib/inbox-product-flags";
 import { getCustomerProfile } from "@/lib/conversations/get-customer-profile";
 import {
   getTopicBadgeClass,
@@ -77,7 +78,9 @@ export function ConversationListItemCard({
     ? "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:bg-amber-900/30"
     : "border-border bg-card hover:border-emerald-200";
   const hasBookingContext = Boolean(conversation.booking_context);
-  const bookingHref = getBookingHref(conversation);
+  const bookingHref = INBOX_BOOKINGS_UI_ENABLED
+    ? getBookingHref(conversation)
+    : null;
   const bookingActionLabel =
     conversation.booking_context?.total === 1 ? "Booking" : "Schedule";
 

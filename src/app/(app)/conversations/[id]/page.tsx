@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import type { ChatMessage } from "@/types/chat";
 import { ConversationViewer } from "@/components/chat/conversation-viewer";
 import type { Metadata } from "next";
+import { INBOX_BOOKINGS_UI_ENABLED } from "@/lib/inbox-product-flags";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
@@ -31,7 +32,9 @@ export default async function ConversationPage({
   const resolvedSearchParams = await searchParams;
   const backParam = resolvedSearchParams?.back;
   const backHref =
-    typeof backParam === "string" && backParam.startsWith("/bookings/")
+    INBOX_BOOKINGS_UI_ENABLED &&
+    typeof backParam === "string" &&
+    backParam.startsWith("/bookings/")
       ? backParam
       : undefined;
 
@@ -124,7 +127,9 @@ export default async function ConversationPage({
     .order("created_at", { ascending: false });
 
   const bookingHref =
-    linkedBookings && linkedBookings.length > 0
+    INBOX_BOOKINGS_UI_ENABLED &&
+    linkedBookings &&
+    linkedBookings.length > 0
       ? linkedBookings.length === 1
         ? `/bookings/${linkedBookings[0].id}`
         : `/bookings?conversationId=${conversation.id}`

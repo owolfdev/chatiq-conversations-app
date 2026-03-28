@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu as ConversationsUserMenu } from "@/components/conversations/user-menu";
 import type { InboxCounts } from "@/types/inbox";
 import { INBOX_COUNTS_EVENT } from "@/lib/inbox-counts";
+import { INBOX_BOOKINGS_UI_ENABLED } from "@/lib/inbox-product-flags";
 
 interface MainNavProps {
   user?: { name?: string } | null;
@@ -19,15 +20,17 @@ export default function MainNav({ user }: MainNavProps) {
   const isConversationDetail =
     pathname?.startsWith("/conversations/") && pathname !== "/conversations";
   const isBookingDetail =
-    pathname?.startsWith("/bookings/") && pathname !== "/bookings";
+    INBOX_BOOKINGS_UI_ENABLED &&
+    pathname?.startsWith("/bookings/") &&
+    pathname !== "/bookings";
   const homeHref =
     pathname === "/conversations"
       ? "/"
       : pathname?.startsWith("/conversations/")
-      ? "/conversations"
-      : pathname?.startsWith("/bookings/")
-      ? "/bookings"
-      : "/conversations";
+        ? "/conversations"
+        : INBOX_BOOKINGS_UI_ENABLED && pathname?.startsWith("/bookings/")
+          ? "/bookings"
+          : "/conversations";
   const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
 
   useEffect(() => {
@@ -47,7 +50,9 @@ export default function MainNav({ user }: MainNavProps) {
   const pendingCount = inboxCounts?.pendingBookings ?? 0;
   const upcomingCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
 
-  const logoCount = openCount + pendingCount;
+  const logoCount = INBOX_BOOKINGS_UI_ENABLED
+    ? openCount + pendingCount
+    : openCount;
   const logoBadge = useMemo(() => {
     if (!inboxCounts || logoCount <= 0) return null;
     return logoCount > 99 ? "99+" : String(logoCount);
@@ -100,23 +105,25 @@ export default function MainNav({ user }: MainNavProps) {
               />
               <span className="sr-only">Conversations</span>
             </Link>
-            <Link
-              href="/bookings"
-              aria-label="Bookings"
-              className={`flex items-center gap-2 text-sm font-medium transition-transform transition-colors active:scale-90 ${
-                pathname === "/bookings" || pathname?.startsWith("/bookings/")
-                  ? "text-emerald-600"
-                  : "text-muted-foreground hover:text-emerald-500"
-              }`}
-            >
-              {isBookingDetail ? <ArrowLeft className="h-4 w-4" /> : null}
-              <CalendarDays className="h-5 w-5" />
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${bookingsDotClass}`}
-              />
-              <span className="sr-only">Bookings</span>
-            </Link>
+            {INBOX_BOOKINGS_UI_ENABLED ? (
+              <Link
+                href="/bookings"
+                aria-label="Bookings"
+                className={`flex items-center gap-2 text-sm font-medium transition-transform transition-colors active:scale-90 ${
+                  pathname === "/bookings" || pathname?.startsWith("/bookings/")
+                    ? "text-emerald-600"
+                    : "text-muted-foreground hover:text-emerald-500"
+                }`}
+              >
+                {isBookingDetail ? <ArrowLeft className="h-4 w-4" /> : null}
+                <CalendarDays className="h-5 w-5" />
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${bookingsDotClass}`}
+                />
+                <span className="sr-only">Bookings</span>
+              </Link>
+            ) : null}
           </div>
           <div className="flex items-center justify-end gap-3">
             {user ? (

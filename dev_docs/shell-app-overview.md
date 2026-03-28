@@ -24,3 +24,7 @@ What Stays Local
 - UI components and navigation.
 - Basic presentation logic (filters, badges, layout).
 - No local database writes for conversation data.
+
+Bookings UI (temporary)
+- **Bookings navigation and homepage booking stats are currently turned off** behind a product flag so the inbox can focus on conversations until booking is revisited.
+- **Re-enable:** see **[`bookings-ui-temporarily-disabled.md`](./bookings-ui-temporarily-disabled.md)** — start with `src/lib/inbox-product-flags.ts` (`INBOX_BOOKINGS_UI_ENABLED`).
