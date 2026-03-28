@@ -3,6 +3,6 @@ export type InboxCounts = {
   pendingBookings: number;
   upcomingConfirmedBookings: number;
   unscheduledBookings: number;
-  /** Counts per curated home shortcut topic (exact `topic` column match). */
+  /** Counts per home shortcut (`id` from `inbox-topic-shortcuts` / `HOME_TOPIC_SHORTCUTS`). */
   topicShortcutCounts?: Record<string, number>;
 };

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { ConversationBookingSummaryStrip } from "@/components/conversations/booking-summary-strip";
-import { HOME_TOPIC_SHORTCUTS } from "@/lib/conversations/home-topic-shortcuts";
 import {
-  getTopicBadgeClass,
-  getTopicShortLabel,
-} from "@/lib/conversations/topic-display";
+  HOME_TOPIC_SHORTCUTS,
+  homeShortcutCanonicalTopic,
+} from "@/lib/conversations/home-topic-shortcuts";
+import { getTopicBadgeClass } from "@/lib/conversations/topic-display";
 import { cn } from "@/lib/utils";
 import type { InboxCounts } from "@/types/inbox";
 
@@ -115,23 +115,24 @@ export function HomeInboxStats() {
           </Link>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Opens the inbox with that topic filter applied (server-side, up to 50
-          threads per load).
+          Counts group legacy + current topic labels. Opens the inbox with a
+          server-side filter (up to 50 threads per load).
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {HOME_TOPIC_SHORTCUTS.map((topic) => {
-            const n = topicCounts[topic] ?? 0;
+          {HOME_TOPIC_SHORTCUTS.map((shortcut) => {
+            const n = topicCounts[shortcut.id] ?? 0;
+            const canonical = homeShortcutCanonicalTopic(shortcut);
             return (
               <Link
-                key={topic}
-                href={`/conversations?topic=${encodeURIComponent(topic)}`}
+                key={shortcut.id}
+                href={`/conversations?topic=${encodeURIComponent(canonical)}`}
                 className={cn(
                   "flex min-h-13 items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors active:scale-[0.99]",
-                  getTopicBadgeClass(topic)
+                  getTopicBadgeClass(canonical)
                 )}
               >
                 <span className="line-clamp-2 min-w-0 flex-1 leading-snug">
-                  {getTopicShortLabel(topic)}
+                  {shortcut.displayLabel}
                 </span>
                 <span className="flex shrink-0 items-center gap-1">
                   <span
