@@ -20,7 +20,7 @@ import {
   HOME_TOPIC_SHORTCUTS,
   homeShortcutCanonicalTopic,
 } from "@/lib/conversations/home-topic-shortcuts";
-import { Filter, FilterX, RefreshCcw } from "lucide-react";
+import { BarChart3, Filter, FilterX, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
 import { dispatchInboxCounts } from "@/lib/inbox-counts";
@@ -37,6 +37,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const ACTIVE_TEAM_EVENT = "active-team-changed";
+const CONVERSATION_STATS_STORAGE_KEY = "chatiq-inbox.stow.conversationStats";
+const CONVERSATION_STATS_PANEL_ID = "chatiq-inbox-conversation-stats-panel";
 
 interface ConversationsListProps {
   initialConversations: ConversationListItem[];
@@ -80,6 +82,8 @@ export function ConversationsList({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
   const [inboxCounts, setInboxCounts] = useState<InboxCounts | null>(null);
+  const [statsPanelOpen, setStatsPanelOpen] = useState(false);
+  const [statsStorageHydrated, setStatsStorageHydrated] = useState(false);
 
   const sourceOptions = useMemo(() => {
     const available = Array.from(
@@ -194,6 +198,24 @@ export function ConversationsList({
     const isIosStandalone = "standalone" in navigator && (navigator as any).standalone;
     setStandalone(Boolean(isStandalone || isIosStandalone));
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(CONVERSATION_STATS_STORAGE_KEY);
+      if (raw === "1") setStatsPanelOpen(true);
+    } finally {
+      setStatsStorageHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!statsStorageHydrated || typeof window === "undefined") return;
+    window.localStorage.setItem(
+      CONVERSATION_STATS_STORAGE_KEY,
+      statsPanelOpen ? "1" : "0"
+    );
+  }, [statsPanelOpen, statsStorageHydrated]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -420,7 +442,23 @@ export function ConversationsList({
         </div>
       ) : null}
       <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Conversation stats"
+          aria-expanded={statsPanelOpen}
+          aria-controls={CONVERSATION_STATS_PANEL_ID}
+          onClick={() => setStatsPanelOpen((prev) => !prev)}
+          className={cn(
+            "shrink-0",
+            statsPanelOpen && "bg-muted text-foreground"
+          )}
+        >
+          <BarChart3 className="h-5 w-5" aria-hidden />
+        </Button>
         <Input
+          className="min-w-0 flex-1"
           placeholder="Search customer"
           value={userQuery}
           onChange={(event) => setUserQuery(event.target.value)}
@@ -428,31 +466,35 @@ export function ConversationsList({
         <Button
           variant="ghost"
           size="icon"
+          className="shrink-0"
           aria-label="Open filters"
           onClick={() => setFiltersOpen(true)}
         >
-          <Filter className="h-4 w-4" />
+          <Filter className="h-5 w-5" aria-hidden />
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon"
+          className="shrink-0"
           aria-label="Reset filters"
           disabled={!hasActiveFilters}
           onClick={resetFilters}
         >
-          <FilterX className="h-4 w-4" />
+          <FilterX className="h-5 w-5" aria-hidden />
         </Button>
         <Button
           variant="ghost"
           size="icon"
+          className="shrink-0"
           aria-label="Refresh list"
           onClick={handleRefresh}
           disabled={isRefreshing}
         >
           <RefreshCcw
-            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
             style={isRefreshing ? { animationDirection: "reverse" } : undefined}
+            aria-hidden
           />
         </Button>
       </div>
@@ -466,8 +508,10 @@ export function ConversationsList({
 
       <StowableStatsPanel
         title="Conversation stats"
-        defaultOpen={false}
-        storageKey="chatiq-inbox.stow.conversationStats"
+        hideHeaderTrigger
+        open={statsPanelOpen}
+        onOpenChange={setStatsPanelOpen}
+        panelId={CONVERSATION_STATS_PANEL_ID}
       >
         <div className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
