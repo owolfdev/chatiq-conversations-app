@@ -12,8 +12,15 @@ import { ConversationListItemCard } from "@/components/conversations/list-item";
 import type { ConversationListItem } from "@/types/conversations";
 import type { InboxCounts } from "@/types/inbox";
 import { CONVERSATION_SOURCE_OPTIONS } from "@/lib/conversations/source-options";
-import { getTopicShortLabel } from "@/lib/conversations/topic-display";
-import { Filter, RefreshCcw } from "lucide-react";
+import {
+  getTopicBadgeClass,
+  getTopicShortLabel,
+} from "@/lib/conversations/topic-display";
+import {
+  HOME_TOPIC_SHORTCUTS,
+  homeShortcutCanonicalTopic,
+} from "@/lib/conversations/home-topic-shortcuts";
+import { Filter, FilterX, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { deleteConversation } from "@/app/actions/chat/delete-conversation";
 import { dispatchInboxCounts } from "@/lib/inbox-counts";
@@ -27,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const ACTIVE_TEAM_EVENT = "active-team-changed";
 
@@ -306,13 +314,54 @@ export function ConversationsList({
     router.replace("/conversations", { scroll: false });
   };
 
+  /** Preserve bot/status/source when jumping to a topic (search stays client-only). */
+  const buildListHref = useCallback(
+    (topic: string | null) => {
+      const p = new URLSearchParams();
+      if (selectedBot !== "all") {
+        p.set("botId", selectedBot);
+      }
+      if (topic?.trim()) {
+        p.set("topic", topic.trim());
+      }
+      if (selectedStatus !== "all") {
+        p.set("status", selectedStatus);
+      }
+      if (selectedSource !== "all") {
+        p.set("source", selectedSource);
+      }
+      const qs = p.toString();
+      return qs ? `/conversations?${qs}` : "/conversations";
+    },
+    [selectedBot, selectedStatus, selectedSource]
+  );
+
   const openCount = inboxCounts?.openConversations ?? 0;
+  const topicShortcutCounts = inboxCounts?.topicShortcutCounts ?? {};
   const pendingBookingsCount = inboxCounts?.pendingBookings ?? 0;
   const upcomingBookingsCount = inboxCounts?.upcomingConfirmedBookings ?? 0;
   const needsScheduleCount = inboxCounts?.unscheduledBookings ?? 0;
   const linkedConversationCount = conversations.filter(
     (conversation) => conversation.booking_context?.total
   ).length;
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      selectedBot !== "all" ||
+      selectedTopic !== "all" ||
+      selectedStatus !== "all" ||
+      selectedSource !== "all" ||
+      userQuery.trim().length > 0 ||
+      detailQuery.trim().length > 0
+    );
+  }, [
+    selectedBot,
+    selectedTopic,
+    selectedStatus,
+    selectedSource,
+    userQuery,
+    detailQuery,
+  ]);
 
   const activeServerFilters = useMemo(() => {
     const parts: string[] = [];
@@ -377,6 +426,16 @@ export function ConversationsList({
           <Filter className="h-4 w-4" />
         </Button>
         <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Reset filters"
+          disabled={!hasActiveFilters}
+          onClick={resetFilters}
+        >
+          <FilterX className="h-4 w-4" />
+        </Button>
+        <Button
           variant="ghost"
           size="icon"
           aria-label="Refresh list"
@@ -401,6 +460,53 @@ export function ConversationsList({
         title="Conversation stats"
         defaultOpen={false}
         storageKey="chatiq-inbox.stow.conversationStats"
+        underTitle={
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Quick topic filters
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={buildListHref(null)}
+                scroll={false}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  selectedTopic === "all"
+                    ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/35"
+                    : "border-border bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                )}
+              >
+                All topics
+              </Link>
+              {HOME_TOPIC_SHORTCUTS.map((shortcut) => {
+                const canonical = homeShortcutCanonicalTopic(shortcut);
+                const count = topicShortcutCounts[shortcut.id] ?? 0;
+                const isActive = shortcut.matchTopics.includes(selectedTopic);
+                return (
+                  <Link
+                    key={shortcut.id}
+                    href={buildListHref(canonical)}
+                    scroll={false}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      getTopicBadgeClass(canonical),
+                      isActive &&
+                        "ring-2 ring-primary/45 ring-offset-2 ring-offset-background"
+                    )}
+                  >
+                    <span>{shortcut.displayLabel}</span>
+                    <span
+                      className="tabular-nums opacity-80"
+                      aria-label={`${count} conversations`}
+                    >
+                      {count}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        }
       >
         <ConversationBookingSummaryStrip
           openCount={openCount}

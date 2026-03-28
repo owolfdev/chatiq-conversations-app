@@ -15,6 +15,8 @@ type StowableStatsPanelProps = {
   defaultOpen?: boolean;
   /** Persist expanded state in localStorage (per browser). */
   storageKey?: string;
+  /** Always visible directly under the title row (e.g. quick filters). */
+  underTitle?: ReactNode;
   children: ReactNode;
   className?: string;
 };
@@ -23,6 +25,7 @@ export function StowableStatsPanel({
   title,
   defaultOpen = false,
   storageKey,
+  underTitle,
   children,
   className,
 }: StowableStatsPanelProps) {
@@ -67,6 +70,9 @@ export function StowableStatsPanel({
           aria-hidden
         />
       </button>
+      {underTitle ? (
+        <div className="mt-2 border-t border-transparent pt-2">{underTitle}</div>
+      ) : null}
       {hydrated && open ? (
         <div className="mt-3 border-t border-transparent">{children}</div>
       ) : null}
