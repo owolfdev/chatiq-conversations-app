@@ -1,35 +1,39 @@
 // src/lib/teams/get-user-team-id.ts
-// Helper function to get a user's primary team_id
-// This bridges the gap until Day 7 when proper team membership creation is implemented
-// After Day 7, this can be replaced with proper team membership logic
 
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { ACTIVE_TEAM_COOKIE_NAME } from "@/lib/teams/constants";
 import {
-  ACTIVE_TEAM_COOKIE_NAME,
-  ACTIVE_TEAM_COOKIE_MAX_AGE,
-} from "@/lib/teams/constants";
+  getWatchOpsTeamId,
+  isWatchOpsTeamId,
+} from "@/lib/watch/watch-ops-team";
+
+export type GetUserTeamIdOptions = {
+  /** When true, the Watch Ops team may be returned (Watch admin setup only). */
+  allowWatchOps?: boolean;
+};
 
 /**
- * Gets the primary team_id for a user.
+ * Gets the active customer workspace team for a user.
  *
- * Priority:
- * 1. Most recent team membership (via bot_team_members.created_at desc)
- * 2. First team owned by the user (via bot_teams.owner_id)
- *
- * This is a temporary helper until Day 7 (Nov 7) when proper team membership
- * creation is implemented during signup.
- *
- * @param userId - The user ID to get team for
- * @returns The team_id or null if no team found
+ * Watch Ops (the team hosting `watch-canary`) is excluded from inbox/dashboard
+ * defaults so synthetic monitoring does not replace customer conversation context.
  */
-export async function getUserTeamId(userId: string): Promise<string | null> {
+export async function getUserTeamId(
+  userId: string,
+  options?: GetUserTeamIdOptions,
+): Promise<string | null> {
+  const allowWatchOps = options?.allowWatchOps === true;
+  const watchOpsTeamId = allowWatchOps ? null : await getWatchOpsTeamId();
+  const isExcludedTeam = (teamId: string | null | undefined) =>
+    !allowWatchOps && isWatchOpsTeamId(teamId, watchOpsTeamId);
+
   const supabase = await createClient();
   const cookieStore = await cookies();
   const preferredTeamId =
     cookieStore.get(ACTIVE_TEAM_COOKIE_NAME)?.value ?? null;
 
-  if (preferredTeamId) {
+  if (preferredTeamId && !isExcludedTeam(preferredTeamId)) {
     const { data: preferredMembership } = await supabase
       .from("bot_team_members")
       .select("team_id")
@@ -42,49 +46,38 @@ export async function getUserTeamId(userId: string): Promise<string | null> {
     }
   }
 
-  // First, try to get team from team_members (if user is already a member)
-  const { data: memberTeam } = await supabase
+  const { data: memberTeams } = await supabase
     .from("bot_team_members")
     .select("team_id")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  if (memberTeam?.team_id) {
-    return memberTeam.team_id;
+  for (const membership of memberTeams ?? []) {
+    if (!isExcludedTeam(membership.team_id)) {
+      return membership.team_id;
+    }
   }
 
-  // Fallback: get team where user is owner
-  const { data: ownedTeam } = await supabase
+  const { data: ownedTeams } = await supabase
     .from("bot_teams")
     .select("id")
-    .eq("owner_id", userId)
-    .limit(1)
-    .maybeSingle();
+    .eq("owner_id", userId);
 
-  if (ownedTeam?.id) {
-    return ownedTeam.id;
+  for (const team of ownedTeams ?? []) {
+    if (!isExcludedTeam(team.id)) {
+      return team.id;
+    }
   }
 
-  // If no team found, return null
-  // This should not happen after Day 7 when teams are created on signup
   console.warn(
-    `No team found for user ${userId}. This may indicate a missing team creation.`
+    `No customer team found for user ${userId}. This may indicate a missing team membership.`,
   );
   return null;
 }
 
-/**
- * Gets all team IDs where a user is a member.
- *
- * @param userId - The user ID to get teams for
- * @returns Array of team IDs
- */
 export async function getUserTeamIds(userId: string): Promise<string[]> {
   const supabase = await createClient();
 
-  // Get teams from team_members
   const { data: memberTeams } = await supabase
     .from("bot_team_members")
     .select("team_id")
@@ -92,7 +85,6 @@ export async function getUserTeamIds(userId: string): Promise<string[]> {
 
   const teamIds = memberTeams?.map((t) => t.team_id) || [];
 
-  // Also include teams where user is owner (if not already included)
   const { data: ownedTeams } = await supabase
     .from("bot_teams")
     .select("id")

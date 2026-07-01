@@ -26,20 +26,29 @@ interface TeamOption {
   createdAt: string;
 }
 
-async function fetchActiveTeamId(): Promise<string | null> {
+async function fetchActiveTeamContext(): Promise<{
+  teamId: string | null;
+  watchOpsTeamId: string | null;
+}> {
   try {
     const response = await fetch("/api/team/active", {
       method: "GET",
       cache: "no-store",
     });
     if (!response.ok) {
-      return null;
+      return { teamId: null, watchOpsTeamId: null };
     }
     const payload = await response.json().catch(() => null);
-    return typeof payload?.teamId === "string" ? payload.teamId : null;
+    return {
+      teamId: typeof payload?.teamId === "string" ? payload.teamId : null,
+      watchOpsTeamId:
+        typeof payload?.watchOpsTeamId === "string"
+          ? payload.watchOpsTeamId
+          : null,
+    };
   } catch (error) {
     console.error("Failed to resolve active team", error);
-    return null;
+    return { teamId: null, watchOpsTeamId: null };
   }
 }
 
@@ -69,7 +78,7 @@ export function TeamSwitcher() {
         return;
       }
 
-      const [{ data, error: membershipError }, activeTeamFromServer] =
+      const [{ data, error: membershipError }, activeTeamContext] =
         await Promise.all([
           supabase
             .from("bot_team_members")
@@ -78,7 +87,7 @@ export function TeamSwitcher() {
             )
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
-          fetchActiveTeamId(),
+          fetchActiveTeamContext(),
         ]);
 
       if (membershipError) {
@@ -102,15 +111,19 @@ export function TeamSwitcher() {
           };
         }) ?? [];
 
-      setTeams(mapped);
+      const customerTeams = mapped.filter(
+        (team) => team.id !== activeTeamContext.watchOpsTeamId,
+      );
+
+      setTeams(customerTeams);
 
       if (
-        activeTeamFromServer &&
-        mapped.some((team) => team.id === activeTeamFromServer)
+        activeTeamContext.teamId &&
+        customerTeams.some((team) => team.id === activeTeamContext.teamId)
       ) {
-        setActiveTeamId(activeTeamFromServer);
-      } else if (mapped.length > 0) {
-        setActiveTeamId(mapped[0].id);
+        setActiveTeamId(activeTeamContext.teamId);
+      } else if (customerTeams.length > 0) {
+        setActiveTeamId(customerTeams[0].id);
       } else {
         setActiveTeamId(null);
       }
@@ -150,6 +163,17 @@ export function TeamSwitcher() {
       : "Select team";
 
   const isDisabled = loading || teams.length === 0;
+
+  if (!loading && teams.length <= 1) {
+    if (!currentTeam) {
+      return null;
+    }
+    return (
+      <span className="max-w-[180px] truncate text-sm text-muted-foreground">
+        {currentTeam.name}
+      </span>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -224,4 +248,3 @@ export function TeamSwitcher() {
     </DropdownMenu>
   );
 }
-
