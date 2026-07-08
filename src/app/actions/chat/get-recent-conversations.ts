@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import type { ChatRole } from "@/types/chat";
+import { CONVERSATION_HOST_BOT_EMBED } from "@/lib/conversations/bot-conversation-bot-relationship";
 
 export interface RecentConversation {
   id: string;
@@ -71,7 +72,7 @@ export async function getRecentConversations(
   let query = supabase
     .from("bot_conversations")
     .select(
-      "id, title, created_at, bot_id, bot_bots!inner(id, name, slug, user_id, team_id)"
+      `id, title, created_at, bot_id, ${CONVERSATION_HOST_BOT_EMBED}(id, name, slug, user_id, team_id)`
     );
 
   // If teamId is provided, filter by team_id; otherwise filter by user_id (legacy behavior)

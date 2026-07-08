@@ -4,6 +4,7 @@ import type { ChatMessage } from "@/types/chat";
 import { ConversationViewer } from "@/components/chat/conversation-viewer";
 import type { Metadata } from "next";
 import { INBOX_BOOKINGS_UI_ENABLED } from "@/lib/inbox-product-flags";
+import { CONVERSATION_HOST_BOT_EMBED } from "@/lib/conversations/bot-conversation-bot-relationship";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
@@ -41,12 +42,17 @@ export default async function ConversationPage({
   const { data: conversation, error } = await supabase
     .from("bot_conversations")
     .select(
-      "id, title, topic, resolution_status, created_at, bot_id, source, source_detail, human_takeover, human_takeover_until, bot_bots(id, name, description, slug, team_id)"
+      `id, title, topic, resolution_status, created_at, bot_id, source, source_detail, human_takeover, human_takeover_until, ${CONVERSATION_HOST_BOT_EMBED}(id, name, description, slug, team_id)`
     )
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !conversation) {
+  if (error) {
+    console.error("Failed to load conversation:", error.message, error.hint);
+    notFound();
+  }
+
+  if (!conversation) {
     notFound();
   }
 

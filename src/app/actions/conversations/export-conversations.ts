@@ -2,6 +2,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { CONVERSATION_HOST_BOT_EMBED } from "@/lib/conversations/bot-conversation-bot-relationship";
 
 export interface ExportConversationsParams {
   teamId?: string | null;
@@ -58,7 +59,7 @@ export async function getConversationsForExport(
   let query = supabase
     .from("bot_conversations")
     .select(
-      "id, title, created_at, bot_id, bot_bots!inner(id, name, slug, team_id)"
+      `id, title, created_at, bot_id, ${CONVERSATION_HOST_BOT_EMBED}(id, name, slug, team_id)`
     )
     .in("bot_bots.team_id", teamIds);
 
